@@ -20,6 +20,57 @@ Include the WPRoutes library in your WordPress theme or plugin:
 require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
 ```
 
+## Zero-Configuration Setup ⭐
+
+**NEW:** WordPress Routes now automatically loads your routes! Just create a `routes.php` file and it's automatically detected based on your `WPROUTES_MODE`:
+
+### Theme Mode (Default)
+```php
+// Simply create: /wp-content/themes/your-theme/routes.php
+<?php
+route_resource('posts', 'PostController');
+ApiManager::get('health', function($request) {
+    return ['status' => 'ok'];
+});
+```
+
+### Plugin Mode  
+```php
+// Set mode in your plugin:
+define('WPROUTES_MODE', 'plugin');
+
+// Create: /wp-content/plugins/your-plugin/routes.php
+<?php
+route_resource('products', 'ProductController');
+```
+
+### Auto-Detection Locations
+
+**Theme Mode:** Searches in this order:
+- `{child-theme}/routes.php`
+- `{child-theme}/routes/api.php` 
+- `{child-theme}/api/routes.php`
+- `{parent-theme}/routes.php`
+- `{parent-theme}/routes/api.php`
+- `{parent-theme}/api/routes.php`
+
+**Plugin Mode:** Searches in this order:
+- `{plugin-root}/routes.php`
+- `{plugin-root}/routes/api.php`
+- `{plugin-root}/src/routes.php`
+
+**That's it!** No manual route loading required. The library handles everything automatically.
+
+### Disable Auto-Loading (Optional)
+```php
+// To disable automatic route loading
+define('WPROUTES_NO_AUTO_ROUTES', true);
+require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
+
+// Then manually load your routes
+require_once get_template_directory() . '/my-custom-routes.php';
+```
+
 ## Quick Start
 
 ### Basic API Routes

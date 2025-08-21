@@ -2,6 +2,56 @@
 
 WordPress Routes provides flexible configuration options for different development environments.
 
+## ⭐ Automatic Route Loading (New!)
+
+**Zero Configuration Required!** WordPress Routes now automatically detects and loads your routes based on `WPROUTES_MODE`.
+
+### Quick Setup
+
+1. **Set your mode** (optional - defaults to "theme"):
+```php
+define('WPROUTES_MODE', 'theme'); // or 'plugin'
+```
+
+2. **Create routes file** in the right location:
+```php
+// Theme: /wp-content/themes/your-theme/routes.php
+// Plugin: /wp-content/plugins/your-plugin/routes.php
+<?php
+route_resource('posts', 'PostController');
+ApiManager::get('health', function($request) {
+    return ['status' => 'ok'];
+});
+```
+
+3. **That's it!** Routes are automatically loaded on `rest_api_init` and in CLI contexts.
+
+### Auto-Detection Paths
+
+**Theme Mode:** Searches in order:
+- `{child-theme}/routes.php` ⭐
+- `{child-theme}/routes/api.php`
+- `{child-theme}/api/routes.php`
+- `{parent-theme}/routes.php` ⭐
+- `{parent-theme}/routes/api.php`
+- `{parent-theme}/api/routes.php`
+
+**Plugin Mode:** Searches in order:
+- `{plugin-root}/routes.php` ⭐
+- `{plugin-root}/routes/api.php`
+- `{plugin-root}/src/routes.php`
+
+### Disable Auto-Loading
+
+```php
+// Before including bootstrap.php
+define('WPROUTES_NO_AUTO_ROUTES', true);
+require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
+
+// Then manually load routes
+require_once get_template_directory() . '/my-custom-routes.php';
+```
+
 ## Mode Configuration
 
 ### Theme Mode

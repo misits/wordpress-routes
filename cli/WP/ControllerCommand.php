@@ -136,7 +136,7 @@ class ControllerCommand extends \WP_CLI_Command
         
         $useStatements = '';
         if ($isApi) {
-            $useStatements = "use WordPressRoutes\\Routing\\BaseController;\nuse WP_REST_Request;\nuse WP_REST_Response;\n";
+            $useStatements = "use WordPressRoutes\\Routing\\BaseController;\nuse WordPressRoutes\\Routing\\ApiRequest;\n";
         }
         
         $methods = '';
@@ -169,14 +169,14 @@ class {$name}{$extendsLine}
             return '    /**
      * Handle the request
      *
-     * @param WP_REST_Request $request
+     * @param ApiRequest $request
      * @return WP_REST_Response
      */
-    public function handle(WP_REST_Request $request)
+    public function handle(ApiRequest $request)
     {
         return $this->success([
             "message" => "Controller method called successfully",
-            "data" => $request->get_params()
+            "data" => $request->all()
         ]);
     }';
         }
@@ -200,10 +200,10 @@ class {$name}{$extendsLine}
             return '    /**
      * Display a listing of the resource
      *
-     * @param WP_REST_Request $request
+     * @param ApiRequest $request
      * @return WP_REST_Response
      */
-    public function index(WP_REST_Request $request)
+    public function index(ApiRequest $request)
     {
         // Get all resources
         return $this->success([]);
@@ -212,10 +212,10 @@ class {$name}{$extendsLine}
     /**
      * Store a newly created resource
      *
-     * @param WP_REST_Request $request
+     * @param ApiRequest $request
      * @return WP_REST_Response
      */
-    public function store(WP_REST_Request $request)
+    public function store(ApiRequest $request)
     {
         // Create new resource
         return $this->success([], "Resource created successfully", 201);
@@ -224,12 +224,12 @@ class {$name}{$extendsLine}
     /**
      * Display the specified resource
      *
-     * @param WP_REST_Request $request
+     * @param ApiRequest $request
      * @return WP_REST_Response
      */
-    public function show(WP_REST_Request $request)
+    public function show(ApiRequest $request)
     {
-        $id = $request->get_param("id");
+        $id = $request->param("id");
         
         // Get specific resource
         return $this->success(["id" => $id]);
@@ -238,12 +238,12 @@ class {$name}{$extendsLine}
     /**
      * Update the specified resource
      *
-     * @param WP_REST_Request $request
+     * @param ApiRequest $request
      * @return WP_REST_Response
      */
-    public function update(WP_REST_Request $request)
+    public function update(ApiRequest $request)
     {
-        $id = $request->get_param("id");
+        $id = $request->param("id");
         
         // Update resource
         return $this->success(["id" => $id], "Resource updated successfully");
@@ -252,12 +252,12 @@ class {$name}{$extendsLine}
     /**
      * Remove the specified resource
      *
-     * @param WP_REST_Request $request
+     * @param ApiRequest $request
      * @return WP_REST_Response
      */
-    public function destroy(WP_REST_Request $request)
+    public function destroy(ApiRequest $request)
     {
-        $id = $request->get_param("id");
+        $id = $request->param("id");
         
         // Delete resource
         return $this->success([], "Resource deleted successfully");
@@ -387,9 +387,14 @@ class {$name}{$extendsLine}
         \WP_CLI::line("Registered Routes:");
         \WP_CLI::line("");
         
+        // Ensure routes are loaded first
+        if (function_exists('wproutes_auto_load_routes')) {
+            wproutes_auto_load_routes();
+        }
+        
         // Get registered routes from ApiManager
         if (class_exists('\\WordPressRoutes\\Routing\\ApiManager')) {
-            $routes = \WordPressRoutes\Routing\ApiManager::getRegisteredRoutes();
+            $routes = \WordPressRoutes\Routing\ApiManager::getRoutes();
             
             if (empty($routes)) {
                 \WP_CLI::line("No routes registered.");
@@ -397,11 +402,40 @@ class {$name}{$extendsLine}
             }
             
             foreach ($routes as $route) {
-                $method = strtoupper($route['method'] ?? 'GET');
-                $path = $route['path'] ?? '';
-                $callback = $route['callback'] ?? '';
-                
-                \WP_CLI::line(sprintf("%-6s %-30s %s", $method, $path, $callback));
+                // Handle ApiRoute objects properly
+                if (is_object($route) && method_exists($route, 'getMethods')) {
+                    $methods = $route->getMethods();
+                    $namespace = $route->getNamespace();
+                    $endpoint = $route->getEndpoint();
+                    
+                    // Get callback using reflection
+                    try {
+                        $reflection = new \ReflectionClass($route);
+                        $callbackProperty = $reflection->getProperty('callback');
+                        $callbackProperty->setAccessible(true);
+                        $callback = $callbackProperty->getValue($route);
+                        
+                        if (is_string($callback)) {
+                            $callbackStr = $callback;
+                        } else {
+                            $callbackStr = 'Custom Handler';
+                        }
+                    } catch (\Exception $e) {
+                        $callbackStr = 'Handler';
+                    }
+                    
+                    foreach ($methods as $method) {
+                        $path = "/wp-json/{$namespace}/{$endpoint}";
+                        \WP_CLI::line(sprintf("%-6s %-40s %s", strtoupper($method), $path, $callbackStr));
+                    }
+                } else {
+                    // Fallback for array format (legacy support)
+                    $method = strtoupper($route['method'] ?? 'GET');
+                    $path = $route['path'] ?? '';
+                    $callback = $route['callback'] ?? '';
+                    
+                    \WP_CLI::line(sprintf("%-6s %-40s %s", $method, $path, $callback));
+                }
             }
         } else {
             \WP_CLI::warning("ApiManager class not found. Make sure WordPress Routes is loaded.");

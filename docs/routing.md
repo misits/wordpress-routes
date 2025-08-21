@@ -2,6 +2,162 @@
 
 WordPress Routes provides a powerful, Laravel-inspired routing system that integrates seamlessly with WordPress REST API.
 
+## ⭐ Modern Routes File Structure
+
+The modern way to organize routes is using a dedicated `routes.php` file that's automatically loaded.
+
+### Creating Your Routes File
+
+Create a `routes.php` file in your theme or plugin root:
+
+```php
+<?php
+/**
+ * API Routes Definition
+ * 
+ * Define all your API routes here using Laravel-style syntax
+ * This file is automatically loaded by wp-routes based on WPROUTES_MODE
+ */
+
+defined("ABSPATH") or exit();
+
+use WordPressRoutes\Routing\ApiManager;
+
+// Set API namespace for all routes
+ApiManager::setNamespace('wp/v2');
+
+/*
+|--------------------------------------------------------------------------
+| Public API Routes
+|--------------------------------------------------------------------------
+| These routes are accessible without authentication
+*/
+
+// Simple endpoint
+ApiManager::get('health', function($request) {
+    return ['status' => 'ok', 'timestamp' => current_time('mysql')];
+});
+
+// Resource routes (CRUD)
+route_resource('posts', 'PostController', [
+    'only' => ['index', 'show'] // Public read-only
+]);
+
+// Search endpoint
+ApiManager::get('search', function($request) {
+    $query = $request->query('q', '');
+    
+    if (empty($query)) {
+        return new WP_Error('missing_query', 'Search query required', ['status' => 400]);
+    }
+    
+    // Search implementation
+    $posts = get_posts([
+        's' => sanitize_text_field($query),
+        'post_type' => 'any',
+        'post_status' => 'publish',
+        'numberposts' => 10
+    ]);
+    
+    return ['query' => $query, 'results' => count($posts)];
+});
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes  
+|--------------------------------------------------------------------------
+| These routes require user authentication
+*/
+
+ApiManager::group(['middleware' => 'auth'], function() {
+    // User's own posts - full CRUD
+    route_resource('my/posts', 'PostController', [
+        'only' => ['store', 'update', 'destroy']
+    ]);
+    
+    // Profile management
+    ApiManager::get('profile', 'UserController@profile');
+    ApiManager::put('profile', 'UserController@updateProfile');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin Routes
+|--------------------------------------------------------------------------
+| These routes require admin privileges
+*/
+
+ApiManager::group([
+    'middleware' => ['auth', 'capability:manage_options'],
+    'prefix' => 'admin'
+], function() {
+    // Admin-only full access
+    route_resource('posts', 'PostController');
+    route_resource('users', 'UserController');
+    
+    // System management
+    ApiManager::get('stats', 'AdminController@stats');
+    ApiManager::post('cache/clear', 'AdminController@clearCache');
+});
+
+/*
+|--------------------------------------------------------------------------
+| API Versioning Example
+|--------------------------------------------------------------------------
+*/
+
+// V2 API with enhanced features
+ApiManager::group(['namespace' => 'myapp/v2'], function() {
+    route_resource('posts', 'V2\\PostController');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Development Routes
+|--------------------------------------------------------------------------
+| Only available when WP_DEBUG is enabled
+*/
+
+if (defined('WP_DEBUG') && WP_DEBUG) {
+    ApiManager::get('debug/routes', function($request) {
+        $routes = ApiManager::getRoutes();
+        return [
+            'total_routes' => count($routes),
+            'routes' => array_map(function($route) {
+                return [
+                    'methods' => $route->getMethods(),
+                    'namespace' => $route->getNamespace(),
+                    'endpoint' => $route->getEndpoint(),
+                ];
+            }, $routes)
+        ];
+    });
+}
+```
+
+### File Locations
+
+The `routes.php` file should be placed in:
+
+**Theme Mode:**
+- `{theme}/routes.php` ⭐ **Recommended**
+- `{theme}/routes/api.php`
+- `{theme}/api/routes.php`
+
+**Plugin Mode:**
+- `{plugin}/routes.php` ⭐ **Recommended**  
+- `{plugin}/routes/api.php`
+- `{plugin}/src/routes.php`
+
+### Benefits of Routes File Approach
+
+✅ **Laravel-style** - Familiar route organization  
+✅ **Separation of concerns** - Routes separate from theme logic  
+✅ **Easy maintenance** - All routes in one place  
+✅ **Version control friendly** - Easy to track route changes  
+✅ **Automatic loading** - Zero configuration required  
+✅ **Organized structure** - Routes grouped by functionality
+
 ## Basic Routing
 
 ### Defining Routes

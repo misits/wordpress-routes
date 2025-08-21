@@ -29,18 +29,41 @@ define("WPROUTES_MODE", "theme");
 require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
 ```
 
-### 3. Directory Structure
+### 3. Create Your Routes File ⭐
 
-WordPress Routes will automatically create and use these directories:
+Create a `routes.php` file in your theme root:
+
+```php
+<?php
+// /wp-content/themes/your-theme/routes.php
+defined("ABSPATH") or exit();
+
+use WordPressRoutes\Routing\ApiManager;
+
+// Your API routes
+ApiManager::get('health', function($request) {
+    return ['status' => 'ok'];
+});
+
+route_resource('posts', 'PostController');
+```
+
+### 4. Directory Structure
+
+WordPress Routes will automatically use these directories:
 
 ```
 /wp-content/themes/your-theme/
-├── controllers/            # Your API controllers
-├── middleware/            # Your custom middleware
+├── routes.php             # ⭐ Auto-loaded routes (NEW!)
+├── controllers/           # Your API controllers  
+├── middleware/           # Your custom middleware
 └── api/
-    ├── controllers/       # Alternative controller location
-    └── middleware/        # Alternative middleware location
+    ├── routes.php        # Alternative routes location
+    ├── controllers/      # Alternative controller location
+    └── middleware/       # Alternative middleware location
 ```
+
+**That's it!** Your routes are automatically loaded. No manual configuration required.
 
 ## Plugin Installation
 

@@ -108,6 +108,105 @@ if (!defined("WPROUTES_NO_AUTO_INIT")) {
     ); // Priority 5 to run early
 }
 
+// Auto-load routes.php based on WPROUTES_MODE
+// You can disable this by defining WPROUTES_NO_AUTO_ROUTES before including bootstrap
+if (!defined("WPROUTES_NO_AUTO_ROUTES")) {
+    add_action(
+        "rest_api_init",
+        function () {
+            wproutes_auto_load_routes();
+        },
+        1, // Early priority to load routes before they're registered
+    );
+    
+    // Also load in CLI context
+    if (defined('WP_CLI') && WP_CLI) {
+        add_action('init', function() {
+            wproutes_auto_load_routes();
+        }, 1);
+    }
+}
+
+/**
+ * Auto-load routes.php file based on WPROUTES_MODE
+ */
+function wproutes_auto_load_routes() {
+    static $loaded = false;
+    
+    // Prevent duplicate loading
+    if ($loaded) {
+        return;
+    }
+    
+    $mode = defined('WPROUTES_MODE') ? WPROUTES_MODE : (defined('WPORM_MODE') ? WPORM_MODE : 'theme');
+    $routes_files = [];
+    
+    switch ($mode) {
+        case 'plugin':
+            // Plugin mode: Look for routes.php in plugin directory
+            $pluginDir = null;
+            $backtrace = debug_backtrace();
+            foreach ($backtrace as $trace) {
+                if (isset($trace['file']) && strpos($trace['file'], '/wp-content/plugins/') !== false) {
+                    $pluginDir = plugin_dir_path($trace['file']);
+                    break;
+                }
+            }
+            // Fallback if not found in plugins directory
+            if (!$pluginDir) {
+                $pluginDir = dirname(__DIR__, 2); // Go up from lib/wp-routes to assumed plugin root
+            }
+            
+            $routes_files = [
+                $pluginDir . 'routes.php',
+                $pluginDir . 'routes/api.php',
+                $pluginDir . 'src/routes.php',
+            ];
+            break;
+            
+        case 'theme':
+        default:
+            // Theme mode: Look for routes.php in theme directories
+            if (function_exists('get_template_directory')) {
+                $routes_files = [
+                    get_template_directory() . '/routes.php',
+                    get_template_directory() . '/routes/api.php',
+                    get_template_directory() . '/api/routes.php',
+                ];
+                
+                // Add child theme paths if exists
+                if (function_exists('get_stylesheet_directory') && get_template_directory() !== get_stylesheet_directory()) {
+                    array_unshift($routes_files, 
+                        get_stylesheet_directory() . '/routes.php',
+                        get_stylesheet_directory() . '/routes/api.php',
+                        get_stylesheet_directory() . '/api/routes.php'
+                    );
+                }
+            }
+            break;
+    }
+    
+    // Load the first found routes file
+    foreach ($routes_files as $routes_file) {
+        if (file_exists($routes_file)) {
+            require_once $routes_file;
+            $loaded = true;
+            
+            // Log successful loading in debug mode
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("WordPress Routes: Auto-loaded routes from {$routes_file}");
+            }
+            break;
+        }
+    }
+    
+    // Log if no routes file was found (only in debug mode)
+    if (!$loaded && defined('WP_DEBUG') && WP_DEBUG) {
+        $attempted = implode(', ', $routes_files);
+        error_log("WordPress Routes: No routes file found. Attempted: {$attempted}");
+    }
+}
+
 /**
  * Get the WordPress Routes version
  *

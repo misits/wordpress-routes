@@ -253,6 +253,16 @@ class ApiManager
     }
 
     /**
+     * Get all registered routes (alias for CLI compatibility)
+     *
+     * @return array
+     */
+    public static function getRegisteredRoutes()
+    {
+        return static::getRoutes();
+    }
+
+    /**
      * Clear all routes (useful for testing)
      */
     public static function clearRoutes()
