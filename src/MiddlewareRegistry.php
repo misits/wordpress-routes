@@ -154,7 +154,7 @@ class MiddlewareRegistry
      */
     public static function group($name, array $middleware)
     {
-        static::register($name, function(ApiRequest $request) use ($middleware) {
+        static::register($name, function(RouteRequest $request) use ($middleware) {
             foreach ($middleware as $middlewareName) {
                 $instance = static::get($middlewareName);
                 if ($instance && method_exists($instance, 'handle')) {

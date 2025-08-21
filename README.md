@@ -29,7 +29,7 @@ require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
 // Simply create: /wp-content/themes/your-theme/routes.php
 <?php
 route_resource('posts', 'PostController');
-ApiManager::get('health', function($request) {
+RouteManager::get('health', function($request) {
     return ['status' => 'ok'];
 });
 ```
@@ -76,22 +76,22 @@ require_once get_template_directory() . '/my-custom-routes.php';
 ### Basic API Routes
 
 ```php
-use WordPressRoutes\Routing\ApiManager;
+use WordPressRoutes\Routing\RouteManager;
 
 // Simple GET endpoint
-ApiManager::get('users', function($request) {
+RouteManager::get('users', function($request) {
     return ['users' => get_users()];
 });
 
 // POST endpoint with data
-ApiManager::post('users', function($request) {
+RouteManager::post('users', function($request) {
     $data = $request->input();
     // Create user logic
     return ['created' => true];
 });
 
 // Route with parameters
-ApiManager::get('users/(?P<id>[\d]+)', function($request) {
+RouteManager::get('users/(?P<id>[\d]+)', function($request) {
     $id = $request->param('id');
     return get_user_by('ID', $id);
 });
@@ -101,18 +101,18 @@ ApiManager::get('users/(?P<id>[\d]+)', function($request) {
 
 ```php
 // Require authentication
-ApiManager::get('profile', function($request) {
+RouteManager::get('profile', function($request) {
     return $request->user();
 })->middleware('auth');
 
 // Rate limiting
-ApiManager::post('contact', function($request) {
+RouteManager::post('contact', function($request) {
     // Send email logic
     return ['sent' => true];
 })->middleware(['rate_limit:10,60']); // 10 requests per minute
 
 // Custom middleware
-ApiManager::get('admin/users', function($request) {
+RouteManager::get('admin/users', function($request) {
     return get_users();
 })->middleware(['auth', 'capability:manage_options']);
 ```
@@ -121,13 +121,13 @@ ApiManager::get('admin/users', function($request) {
 
 ```php
 // Group routes with shared middleware and namespace
-ApiManager::group([
+RouteManager::group([
     'namespace' => 'myapp/v1',
     'middleware' => ['auth']
 ], function() {
-    ApiManager::get('dashboard', 'DashboardController@index');
-    ApiManager::get('settings', 'SettingsController@index');
-    ApiManager::post('settings', 'SettingsController@update');
+    RouteManager::get('dashboard', 'DashboardController@index');
+    RouteManager::get('settings', 'SettingsController@index');
+    RouteManager::post('settings', 'SettingsController@update');
 });
 ```
 
@@ -135,10 +135,10 @@ ApiManager::group([
 
 ```php
 // Automatically creates index, show, store, update, destroy routes
-ApiManager::resource('posts', 'PostController');
+RouteManager::resource('posts', 'PostController');
 
 // Only specific actions
-ApiManager::resource('comments', 'CommentController', [
+RouteManager::resource('comments', 'CommentController', [
     'only' => ['index', 'show', 'store']
 ]);
 ```
@@ -173,10 +173,12 @@ ApiManager::resource('comments', 'CommentController', [
 
 ## Request Methods
 
-The `ApiRequest` object provides convenient methods to access request data:
+The `RouteRequest` object provides convenient methods to access request data:
 
 ```php
-ApiManager::post('example', function($request) {
+use WordPressRoutes\Routing\RouteRequest;
+
+RouteManager::post('example', function(RouteRequest $request) {
     // Get input data
     $name = $request->input('name');
     $email = $request->input('email', 'default@example.com');
@@ -198,8 +200,10 @@ ApiManager::post('example', function($request) {
     // Get query parameters
     $page = $request->query('page', 1);
 
-    // Get current user
-    $user = $request->user();
+    // Check authentication
+    if ($request->isAuthenticated()) {
+        $user = $request->user();
+    }
 
     // File uploads
     if ($request->hasFile('avatar')) {
@@ -234,11 +238,11 @@ Create your own middleware by implementing the `MiddlewareInterface`:
 
 ```php
 use WordPressRoutes\Routing\Middleware\MiddlewareInterface;
-use WordPressRoutes\Routing\ApiRequest;
+use WordPressRoutes\Routing\RouteRequest;
 
 class CustomMiddleware implements MiddlewareInterface
 {
-    public function handle(ApiRequest $request)
+    public function handle(RouteRequest $request)
     {
         // Your middleware logic
         if (!$this->isValid($request)) {
@@ -248,13 +252,19 @@ class CustomMiddleware implements MiddlewareInterface
         // Return null to continue processing
         return null;
     }
+    
+    private function isValid(RouteRequest $request)
+    {
+        // Example validation logic
+        return $request->isAuthenticated() && $request->userCan('read');
+    }
 }
 
 // Register middleware
 MiddlewareRegistry::register('custom', CustomMiddleware::class);
 
 // Use in routes
-ApiManager::get('protected', $handler)->middleware('custom');
+RouteManager::get('protected', $handler)->middleware('custom');
 ```
 
 ## Controller Classes
@@ -262,20 +272,30 @@ ApiManager::get('protected', $handler)->middleware('custom');
 Organize your API logic with controller classes:
 
 ```php
-class UserController
+use WordPressRoutes\Routing\BaseController;
+use WordPressRoutes\Routing\RouteRequest;
+
+class UserController extends BaseController
 {
-    public function index(ApiRequest $request)
+    public function index(RouteRequest $request)
     {
-        return get_users();
+        $users = get_users();
+        return $this->success($users);
     }
 
-    public function show(ApiRequest $request)
+    public function show(RouteRequest $request)
     {
         $id = $request->param('id');
-        return get_user_by('ID', $id);
+        $user = get_user_by('ID', $id);
+        
+        if (!$user) {
+            return $this->error([], 'User not found', 404);
+        }
+        
+        return $this->success($user);
     }
 
-    public function store(ApiRequest $request)
+    public function store(RouteRequest $request)
     {
         $validation = $request->validate([
             'username' => 'required|min:3',
@@ -288,11 +308,17 @@ class UserController
         }
 
         // Create user logic
-        return wp_create_user(
+        $user_id = wp_create_user(
             $request->input('username'),
             $request->input('password'),
             $request->input('email')
         );
+        
+        if (is_wp_error($user_id)) {
+            return $this->error([], $user_id->get_error_message(), 400);
+        }
+        
+        return $this->success(['user_id' => $user_id], 'User created successfully', 201);
     }
 }
 ```
@@ -304,7 +330,7 @@ Perfect companion to WordPress ORM for database operations:
 ```php
 use WordpressORM\Models\Post;
 
-ApiManager::get('posts', function($request) {
+RouteManager::get('posts', function(RouteRequest $request) {
     $posts = Post::where('post_status', 'publish')
         ->where('post_type', 'post')
         ->orderBy('post_date', 'desc')
@@ -314,7 +340,7 @@ ApiManager::get('posts', function($request) {
     return $posts;
 })->middleware('rate_limit:100,60');
 
-ApiManager::post('posts', function($request) {
+RouteManager::post('posts', function(RouteRequest $request) {
     $validation = $request->validate([
         'title' => 'required|max:255',
         'content' => 'required',
@@ -329,7 +355,7 @@ ApiManager::post('posts', function($request) {
     $post->post_title = $request->input('title');
     $post->post_content = $request->input('content');
     $post->post_status = $request->input('status');
-    $post->post_author = $request->userId();
+    $post->post_author = $request->user()->ID;
     $post->save();
 
     return $post;
@@ -342,14 +368,14 @@ ApiManager::post('posts', function($request) {
 
 ```php
 // Set your app's API namespace
-ApiManager::setNamespace('myapp/v1');
+RouteManager::setNamespace('myapp/v1');
 ```
 
 ### Global Middleware
 
 ```php
 // Apply middleware to all routes
-ApiManager::middleware(['cors', 'rate_limit:1000,60']);
+RouteManager::middleware(['cors', 'rate_limit:1000,60']);
 ```
 
 ### Custom Middleware Registry
@@ -367,7 +393,7 @@ MiddlewareRegistry::registerMany([
 
 ```php
 // Generate URLs for your API endpoints
-$url = ApiManager::url('user_profile', ['id' => 123]);
+$url = RouteManager::url('user_profile', ['id' => 123]);
 // Returns: https://yoursite.com/wp-json/myapp/v1/users/123
 
 // In JavaScript (frontend)
@@ -395,18 +421,26 @@ const apiUrl = wpApiSettings.root + 'myapp/v1/users';
 ## Error Handling
 
 ```php
-ApiManager::post('sensitive', function($request) {
+RouteManager::post('sensitive', function(RouteRequest $request) {
     try {
+        // Check authentication and permissions
+        if (!$request->isAuthenticated()) {
+            return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
+        }
+        
         // Risky operation
-        return performOperation();
+        return performOperation($request->all());
     } catch (Exception $e) {
+        // Log error internally
+        error_log('API Error: ' . $e->getMessage());
+        
         return new WP_Error(
             'operation_failed',
-            $e->getMessage(),
+            WP_DEBUG ? $e->getMessage() : 'An error occurred',
             ['status' => 500]
         );
     }
-});
+})->middleware(['auth', 'rate_limit:10,60']);
 ```
 
 ## Testing Your API
@@ -426,26 +460,26 @@ curl -X POST "https://yoursite.com/wp-json/myapp/v1/users" \
 
 ```php
 // Set namespace
-ApiManager::setNamespace('myapp/v1');
+RouteManager::setNamespace('myapp/v1');
 
 // Public routes
-ApiManager::get('users', 'UserController@index');
-ApiManager::get('users/(?P<id>[\d]+)', 'UserController@show');
+RouteManager::get('users', 'UserController@index');
+RouteManager::get('users/(?P<id>[\d]+)', 'UserController@show');
 
 // Protected routes
-ApiManager::group(['middleware' => 'auth'], function() {
-    ApiManager::get('profile', 'UserController@profile');
-    ApiManager::put('profile', 'UserController@updateProfile');
-    ApiManager::post('avatar', 'UserController@uploadAvatar');
+RouteManager::group(['middleware' => 'auth'], function() {
+    RouteManager::get('profile', 'UserController@profile');
+    RouteManager::put('profile', 'UserController@updateProfile');
+    RouteManager::post('avatar', 'UserController@uploadAvatar');
 });
 
 // Admin only routes
-ApiManager::group([
+RouteManager::group([
     'middleware' => ['auth', 'capability:manage_users'],
     'prefix' => 'admin'
 ], function() {
-    ApiManager::resource('users', 'Admin\UserController');
-    ApiManager::post('users/(?P<id>[\d]+)/ban', 'Admin\UserController@ban');
+    RouteManager::resource('users', 'Admin\UserController');
+    RouteManager::post('users/(?P<id>[\d]+)/ban', 'Admin\UserController@ban');
 });
 ```
 

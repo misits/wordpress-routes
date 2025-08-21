@@ -2,7 +2,7 @@
 
 namespace WordPressRoutes\Routing\Middleware;
 
-use WordPressRoutes\Routing\ApiRequest;
+use WordPressRoutes\Routing\RouteRequest;
 
 defined("ABSPATH") or exit();
 
@@ -18,10 +18,10 @@ class AuthMiddleware implements MiddlewareInterface
     /**
      * Handle authentication check
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return \WP_Error|null
      */
-    public function handle(ApiRequest $request)
+    public function handle(RouteRequest $request)
     {
         if (!$request->isAuthenticated()) {
             return new \WP_Error(

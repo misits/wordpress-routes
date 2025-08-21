@@ -43,11 +43,11 @@ wp wproutes make:controller ProductController --api --resource
 // functions.php or plugin file
 add_action('rest_api_init', function() {
     // Set your API namespace
-    \WordPressRoutes\Routing\ApiManager::setNamespace('myapp/v1');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('myapp/v1');
     
     // Define routes
-    \WordPressRoutes\Routing\ApiManager::get('products', 'ProductController@index');
-    \WordPressRoutes\Routing\ApiManager::resource('products', 'ProductController');
+    \WordPressRoutes\Routing\RouteManager::get('products', 'ProductController@index');
+    \WordPressRoutes\Routing\RouteManager::resource('products', 'ProductController');
 });
 ```
 

@@ -38,10 +38,10 @@ Create a `routes.php` file in your theme root:
 // /wp-content/themes/your-theme/routes.php
 defined("ABSPATH") or exit();
 
-use WordPressRoutes\Routing\ApiManager;
+use WordPressRoutes\Routing\RouteManager;
 
 // Your API routes
-ApiManager::get('health', function($request) {
+RouteManager::get('health', function($request) {
     return ['status' => 'ok'];
 });
 

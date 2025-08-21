@@ -37,12 +37,11 @@ Create a controller manually:
 // controllers/ProductController.php
 
 use WordPressRoutes\Routing\BaseController;
-use WP_REST_Request;
-use WP_REST_Response;
+use WordPressRoutes\Routing\RouteRequest;
 
 class ProductController extends BaseController
 {
-    public function index(WP_REST_Request $request)
+    public function index(RouteRequest $request)
     {
         // Your logic here
         $products = []; // Get products
@@ -76,27 +75,26 @@ Extends BaseController with helper methods:
 ```php
 <?php
 use WordPressRoutes\Routing\BaseController;
-use WP_REST_Request;
-use WP_REST_Response;
+use WordPressRoutes\Routing\RouteRequest;
 
 class ApiController extends BaseController
 {
-    public function index(WP_REST_Request $request)
+    public function index(RouteRequest $request)
     {
         $data = ['message' => 'Hello API'];
         return $this->success($data);
     }
     
-    public function create(WP_REST_Request $request)
+    public function create(RouteRequest $request)
     {
         // Validate input
-        $validation = $this->validate($request, [
+        $validation = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email'
         ]);
         
-        if ($validation !== true) {
-            return $this->error($validation, 'Validation failed', 422);
+        if (is_wp_error($validation)) {
+            return $validation;
         }
         
         // Create resource
@@ -112,15 +110,14 @@ Full CRUD controller:
 ```php
 <?php
 use WordPressRoutes\Routing\BaseController;
-use WP_REST_Request;
-use WP_REST_Response;
+use WordPressRoutes\Routing\RouteRequest;
 
 class ProductController extends BaseController
 {
     /**
      * Display a listing of products
      */
-    public function index(WP_REST_Request $request)
+    public function index(RouteRequest $request)
     {
         // Get all products
         $products = $this->getProducts($request);
@@ -131,7 +128,7 @@ class ProductController extends BaseController
     /**
      * Store a newly created product
      */
-    public function store(WP_REST_Request $request)
+    public function store(RouteRequest $request)
     {
         // Validation
         $rules = [
@@ -140,13 +137,13 @@ class ProductController extends BaseController
             'description' => 'string'
         ];
         
-        $validation = $this->validate($request, $rules);
-        if ($validation !== true) {
-            return $this->error($validation, 'Validation failed', 422);
+        $validation = $request->validate($rules);
+        if (is_wp_error($validation)) {
+            return $validation;
         }
         
         // Create product
-        $product = $this->createProduct($request->get_params());
+        $product = $this->createProduct($request->all());
         
         return $this->success($product, 'Product created successfully', 201);
     }
@@ -154,9 +151,9 @@ class ProductController extends BaseController
     /**
      * Display the specified product
      */
-    public function show(WP_REST_Request $request)
+    public function show(RouteRequest $request)
     {
-        $id = $request->get_param('id');
+        $id = $request->param('id');
         $product = $this->getProduct($id);
         
         if (!$product) {
@@ -169,9 +166,9 @@ class ProductController extends BaseController
     /**
      * Update the specified product
      */
-    public function update(WP_REST_Request $request)
+    public function update(RouteRequest $request)
     {
-        $id = $request->get_param('id');
+        $id = $request->param('id');
         
         // Check if product exists
         $product = $this->getProduct($id);
@@ -186,13 +183,13 @@ class ProductController extends BaseController
             'description' => 'string'
         ];
         
-        $validation = $this->validate($request, $rules);
-        if ($validation !== true) {
-            return $this->error($validation, 'Validation failed', 422);
+        $validation = $request->validate($rules);
+        if (is_wp_error($validation)) {
+            return $validation;
         }
         
         // Update product
-        $product = $this->updateProduct($id, $request->get_params());
+        $product = $this->updateProduct($id, $request->all());
         
         return $this->success($product, 'Product updated successfully');
     }
@@ -200,9 +197,9 @@ class ProductController extends BaseController
     /**
      * Remove the specified product
      */
-    public function destroy(WP_REST_Request $request)
+    public function destroy(RouteRequest $request)
     {
-        $id = $request->get_param('id');
+        $id = $request->param('id');
         
         // Check if product exists
         $product = $this->getProduct($id);
@@ -254,9 +251,9 @@ $rules = [
     'website' => 'url'
 ];
 
-$validation = $this->validate($request, $rules);
-if ($validation !== true) {
-    return $this->error($validation, 'Validation failed', 422);
+$validation = $request->validate($rules);
+if (is_wp_error($validation)) {
+    return $validation;
 }
 ```
 
@@ -280,8 +277,8 @@ if (!$this->can('manage_options')) {
 ### Pagination
 
 ```php
-$page = $request->get_param('page') ?: 1;
-$perPage = $request->get_param('per_page') ?: 10;
+$page = $request->query('page', 1);
+$perPage = $request->query('per_page', 10);
 
 $products = $this->getProducts();
 $paginated = $this->paginate($products, $page, $perPage);
@@ -343,7 +340,7 @@ wp wproutes controller:list --format=json
 ```php
 class PostController extends BaseController
 {
-    public function index(WP_REST_Request $request)
+    public function index(RouteRequest $request)
     {
         // Use WordPress functions
         $posts = get_posts([
@@ -355,12 +352,12 @@ class PostController extends BaseController
         return $this->success($posts);
     }
     
-    public function store(WP_REST_Request $request)
+    public function store(RouteRequest $request)
     {
         // Create WordPress post
         $post_id = wp_insert_post([
-            'post_title' => $request->get_param('title'),
-            'post_content' => $request->get_param('content'),
+            'post_title' => $request->input('title'),
+            'post_content' => $request->input('content'),
             'post_status' => 'publish'
         ]);
         
@@ -380,7 +377,7 @@ If you're using WordPress ORM alongside WordPress Routes:
 ```php
 class ProductController extends BaseController
 {
-    public function index(WP_REST_Request $request)
+    public function index(RouteRequest $request)
     {
         // Load the Product model
         $Product = model('Product');

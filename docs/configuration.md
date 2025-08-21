@@ -19,7 +19,7 @@ define('WPROUTES_MODE', 'theme'); // or 'plugin'
 // Plugin: /wp-content/plugins/your-plugin/routes.php
 <?php
 route_resource('posts', 'PostController');
-ApiManager::get('health', function($request) {
+RouteManager::get('health', function($request) {
     return ['status' => 'ok'];
 });
 ```
@@ -183,10 +183,10 @@ Set a global namespace for all your routes:
 ```php
 add_action('rest_api_init', function() {
     // Set global namespace
-    \WordPressRoutes\Routing\ApiManager::setNamespace('myapp/v1');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('myapp/v1');
     
     // All routes will use this namespace
-    \WordPressRoutes\Routing\ApiManager::get('products', 'ProductController@index');
+    \WordPressRoutes\Routing\RouteManager::get('products', 'ProductController@index');
     // Creates: /wp-json/myapp/v1/products
 });
 ```
@@ -198,12 +198,12 @@ Use different namespaces for different route groups:
 ```php
 add_action('rest_api_init', function() {
     // Public API
-    \WordPressRoutes\Routing\ApiManager::setNamespace('api/v1');
-    \WordPressRoutes\Routing\ApiManager::get('products', 'ProductController@index');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('api/v1');
+    \WordPressRoutes\Routing\RouteManager::get('products', 'ProductController@index');
     
     // Admin API
-    \WordPressRoutes\Routing\ApiManager::setNamespace('admin/v1');
-    \WordPressRoutes\Routing\ApiManager::get('users', 'AdminController@users');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('admin/v1');
+    \WordPressRoutes\Routing\RouteManager::get('users', 'AdminController@users');
 });
 ```
 

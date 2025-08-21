@@ -2,7 +2,7 @@
 
 namespace WordPressRoutes\Routing\Middleware;
 
-use WordPressRoutes\Routing\ApiRequest;
+use WordPressRoutes\Routing\RouteRequest;
 
 defined("ABSPATH") or exit();
 
@@ -44,10 +44,10 @@ class RateLimitMiddleware implements MiddlewareInterface
     /**
      * Handle rate limiting
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return \WP_Error|\WP_REST_Response|null
      */
-    public function handle(ApiRequest $request)
+    public function handle(RouteRequest $request)
     {
         $identifier = $this->getIdentifier($request);
         $key = $this->getCacheKey($identifier);
@@ -99,10 +99,10 @@ class RateLimitMiddleware implements MiddlewareInterface
     /**
      * Get identifier for rate limiting (user ID or IP)
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return string
      */
-    protected function getIdentifier(ApiRequest $request)
+    protected function getIdentifier(RouteRequest $request)
     {
         if ($request->isAuthenticated()) {
             return 'user_' . $request->userId();

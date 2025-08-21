@@ -12,7 +12,7 @@ define("WPROUTES_MODE", "theme"); // or "plugin"
 require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
 
 add_action('rest_api_init', function() {
-    \WordPressRoutes\Routing\ApiManager::setNamespace('myapp/v1');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('myapp/v1');
 });
 ```
 
@@ -27,8 +27,8 @@ wp wproutes make:controller PostController --api --resource
 ```php
 // functions.php
 add_action('rest_api_init', function() {
-    \WordPressRoutes\Routing\ApiManager::setNamespace('myapp/v1');
-    \WordPressRoutes\Routing\ApiManager::resource('posts', 'PostController');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('myapp/v1');
+    \WordPressRoutes\Routing\RouteManager::resource('posts', 'PostController');
 });
 ```
 
@@ -80,32 +80,32 @@ wp wproutes make:middleware RateLimitMiddleware
 ```php
 // functions.php
 add_action('rest_api_init', function() {
-    \WordPressRoutes\Routing\ApiManager::setNamespace('shop/v1');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('shop/v1');
     
     // Public routes
-    \WordPressRoutes\Routing\ApiManager::get('products', 'ProductController@index');
-    \WordPressRoutes\Routing\ApiManager::get('products/{id}', 'ProductController@show');
-    \WordPressRoutes\Routing\ApiManager::get('categories', 'CategoryController@index');
+    \WordPressRoutes\Routing\RouteManager::get('products', 'ProductController@index');
+    \WordPressRoutes\Routing\RouteManager::get('products/{id}', 'ProductController@show');
+    \WordPressRoutes\Routing\RouteManager::get('categories', 'CategoryController@index');
     
     // Authenticated routes
-    \WordPressRoutes\Routing\ApiManager::group(['middleware' => ['auth']], function() {
+    \WordPressRoutes\Routing\RouteManager::group(['middleware' => ['auth']], function() {
         // Cart operations
-        \WordPressRoutes\Routing\ApiManager::get('cart', 'CartController@show');
-        \WordPressRoutes\Routing\ApiManager::post('cart/items', 'CartController@addItem');
-        \WordPressRoutes\Routing\ApiManager::delete('cart/items/{id}', 'CartController@removeItem');
+        \WordPressRoutes\Routing\RouteManager::get('cart', 'CartController@show');
+        \WordPressRoutes\Routing\RouteManager::post('cart/items', 'CartController@addItem');
+        \WordPressRoutes\Routing\RouteManager::delete('cart/items/{id}', 'CartController@removeItem');
         
         // Orders
-        \WordPressRoutes\Routing\ApiManager::resource('orders', 'OrderController')
+        \WordPressRoutes\Routing\RouteManager::resource('orders', 'OrderController')
             ->only(['index', 'show', 'store']);
     });
     
     // Admin routes
-    \WordPressRoutes\Routing\ApiManager::group(['middleware' => ['auth', 'admin']], function() {
-        \WordPressRoutes\Routing\ApiManager::resource('products', 'ProductController')
+    \WordPressRoutes\Routing\RouteManager::group(['middleware' => ['auth', 'admin']], function() {
+        \WordPressRoutes\Routing\RouteManager::resource('products', 'ProductController')
             ->except(['index', 'show']);
-        \WordPressRoutes\Routing\ApiManager::resource('categories', 'CategoryController')
+        \WordPressRoutes\Routing\RouteManager::resource('categories', 'CategoryController')
             ->except(['index']);
-        \WordPressRoutes\Routing\ApiManager::resource('orders', 'OrderController')
+        \WordPressRoutes\Routing\RouteManager::resource('orders', 'OrderController')
             ->only(['update', 'destroy']);
     });
 });
@@ -591,16 +591,16 @@ class AuthController extends BaseController
 ```php
 // functions.php
 add_action('rest_api_init', function() {
-    \WordPressRoutes\Routing\ApiManager::setNamespace('api/v1');
+    \WordPressRoutes\Routing\RouteManager::setNamespace('api/v1');
     
     // Public auth routes
-    \WordPressRoutes\Routing\ApiManager::post('auth/login', 'AuthController@login');
-    \WordPressRoutes\Routing\ApiManager::post('auth/register', 'AuthController@register');
+    \WordPressRoutes\Routing\RouteManager::post('auth/login', 'AuthController@login');
+    \WordPressRoutes\Routing\RouteManager::post('auth/register', 'AuthController@register');
     
     // Protected routes
-    \WordPressRoutes\Routing\ApiManager::group(['middleware' => ['jwt_auth']], function() {
-        \WordPressRoutes\Routing\ApiManager::get('auth/me', 'AuthController@me');
-        \WordPressRoutes\Routing\ApiManager::resource('posts', 'BlogController');
+    \WordPressRoutes\Routing\RouteManager::group(['middleware' => ['jwt_auth']], function() {
+        \WordPressRoutes\Routing\RouteManager::get('auth/me', 'AuthController@me');
+        \WordPressRoutes\Routing\RouteManager::resource('posts', 'BlogController');
     });
 });
 ```

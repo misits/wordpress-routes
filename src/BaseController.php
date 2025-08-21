@@ -17,7 +17,7 @@ abstract class BaseController
     /**
      * Current request instance
      *
-     * @var ApiRequest
+     * @var RouteRequest
      */
     protected $request;
 
@@ -52,10 +52,10 @@ abstract class BaseController
     /**
      * Set the current request
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return $this
      */
-    public function setRequest(ApiRequest $request)
+    public function setRequest(RouteRequest $request)
     {
         $this->request = $request;
         return $this;
@@ -64,7 +64,7 @@ abstract class BaseController
     /**
      * Get the current request
      *
-     * @return ApiRequest
+     * @return RouteRequest
      */
     protected function request()
     {

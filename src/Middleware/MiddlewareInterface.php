@@ -2,7 +2,7 @@
 
 namespace WordPressRoutes\Routing\Middleware;
 
-use WordPressRoutes\Routing\ApiRequest;
+use WordPressRoutes\Routing\RouteRequest;
 
 defined("ABSPATH") or exit();
 
@@ -19,8 +19,8 @@ interface MiddlewareInterface
     /**
      * Handle the request
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return mixed|null Return null to continue, or response to stop processing
      */
-    public function handle(ApiRequest $request);
+    public function handle(RouteRequest $request);
 }

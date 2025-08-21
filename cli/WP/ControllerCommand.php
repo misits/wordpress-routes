@@ -136,7 +136,7 @@ class ControllerCommand extends \WP_CLI_Command
         
         $useStatements = '';
         if ($isApi) {
-            $useStatements = "use WordPressRoutes\\Routing\\BaseController;\nuse WordPressRoutes\\Routing\\ApiRequest;\n";
+            $useStatements = "use WordPressRoutes\\Routing\\BaseController;\nuse WordPressRoutes\\Routing\\RouteRequest;\n";
         }
         
         $methods = '';
@@ -169,10 +169,10 @@ class {$name}{$extendsLine}
             return '    /**
      * Handle the request
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return WP_REST_Response
      */
-    public function handle(ApiRequest $request)
+    public function handle(RouteRequest $request)
     {
         return $this->success([
             "message" => "Controller method called successfully",
@@ -200,10 +200,10 @@ class {$name}{$extendsLine}
             return '    /**
      * Display a listing of the resource
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return WP_REST_Response
      */
-    public function index(ApiRequest $request)
+    public function index(RouteRequest $request)
     {
         // Get all resources
         return $this->success([]);
@@ -212,10 +212,10 @@ class {$name}{$extendsLine}
     /**
      * Store a newly created resource
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return WP_REST_Response
      */
-    public function store(ApiRequest $request)
+    public function store(RouteRequest $request)
     {
         // Create new resource
         return $this->success([], "Resource created successfully", 201);
@@ -224,10 +224,10 @@ class {$name}{$extendsLine}
     /**
      * Display the specified resource
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return WP_REST_Response
      */
-    public function show(ApiRequest $request)
+    public function show(RouteRequest $request)
     {
         $id = $request->param("id");
         
@@ -238,10 +238,10 @@ class {$name}{$extendsLine}
     /**
      * Update the specified resource
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return WP_REST_Response
      */
-    public function update(ApiRequest $request)
+    public function update(RouteRequest $request)
     {
         $id = $request->param("id");
         
@@ -252,10 +252,10 @@ class {$name}{$extendsLine}
     /**
      * Remove the specified resource
      *
-     * @param ApiRequest $request
+     * @param RouteRequest $request
      * @return WP_REST_Response
      */
-    public function destroy(ApiRequest $request)
+    public function destroy(RouteRequest $request)
     {
         $id = $request->param("id");
         
@@ -392,9 +392,9 @@ class {$name}{$extendsLine}
             wproutes_auto_load_routes();
         }
         
-        // Get registered routes from ApiManager
-        if (class_exists('\\WordPressRoutes\\Routing\\ApiManager')) {
-            $routes = \WordPressRoutes\Routing\ApiManager::getRoutes();
+        // Get registered routes from RouteManager
+        if (class_exists('\\WordPressRoutes\\Routing\\RouteManager')) {
+            $routes = \WordPressRoutes\Routing\RouteManager::getRoutes();
             
             if (empty($routes)) {
                 \WP_CLI::line("No routes registered.");
@@ -402,7 +402,7 @@ class {$name}{$extendsLine}
             }
             
             foreach ($routes as $route) {
-                // Handle ApiRoute objects properly
+                // Handle Route objects properly
                 if (is_object($route) && method_exists($route, 'getMethods')) {
                     $methods = $route->getMethods();
                     $namespace = $route->getNamespace();
@@ -438,7 +438,7 @@ class {$name}{$extendsLine}
                 }
             }
         } else {
-            \WP_CLI::warning("ApiManager class not found. Make sure WordPress Routes is loaded.");
+            \WP_CLI::warning("RouteManager class not found. Make sure WordPress Routes is loaded.");
         }
     }
 }

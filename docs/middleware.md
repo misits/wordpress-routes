@@ -60,14 +60,14 @@ WordPress Routes comes with several built-in middleware:
 ### Authentication Middleware
 
 ```php
-use WordPressRoutes\Routing\ApiManager;
+use WordPressRoutes\Routing\RouteManager;
 
 // Require authentication
-ApiManager::get('protected', 'ProtectedController@index')
+RouteManager::get('protected', 'ProtectedController@index')
     ->middleware(['auth']);
 
 // Multiple middleware
-ApiManager::get('admin', 'AdminController@index')
+RouteManager::get('admin', 'AdminController@index')
     ->middleware(['auth', 'capability:manage_options']);
 ```
 
@@ -75,11 +75,11 @@ ApiManager::get('admin', 'AdminController@index')
 
 ```php
 // Limit to 60 requests per minute
-ApiManager::get('api/data', 'DataController@index')
+RouteManager::get('api/data', 'DataController@index')
     ->middleware(['rate_limit:60,1']);
 
 // Limit to 1000 requests per hour
-ApiManager::post('api/upload', 'UploadController@store')
+RouteManager::post('api/upload', 'UploadController@store')
     ->middleware(['rate_limit:1000,60']);
 ```
 
@@ -87,11 +87,11 @@ ApiManager::post('api/upload', 'UploadController@store')
 
 ```php
 // Require specific capability
-ApiManager::delete('posts/{id}', 'PostController@destroy')
+RouteManager::delete('posts/{id}', 'PostController@destroy')
     ->middleware(['capability:delete_posts']);
 
 // Multiple capabilities (AND logic)
-ApiManager::get('admin/users', 'AdminController@users')
+RouteManager::get('admin/users', 'AdminController@users')
     ->middleware(['capability:list_users,manage_options']);
 ```
 
@@ -195,14 +195,14 @@ class CorsMiddleware implements MiddlewareInterface
 ### Single Route Middleware
 
 ```php
-use WordPressRoutes\Routing\ApiManager;
+use WordPressRoutes\Routing\RouteManager;
 
 // Single middleware
-ApiManager::get('products', 'ProductController@index')
+RouteManager::get('products', 'ProductController@index')
     ->middleware(['auth']);
 
 // Multiple middleware
-ApiManager::post('products', 'ProductController@store')
+RouteManager::post('products', 'ProductController@store')
     ->middleware(['auth', 'rate_limit:30,1', 'logging']);
 ```
 
@@ -210,21 +210,21 @@ ApiManager::post('products', 'ProductController@store')
 
 ```php
 // Apply middleware to multiple routes
-ApiManager::group(['middleware' => ['auth']], function() {
-    ApiManager::get('profile', 'ProfileController@show');
-    ApiManager::put('profile', 'ProfileController@update');
-    ApiManager::delete('account', 'AccountController@destroy');
+RouteManager::group(['middleware' => ['auth']], function() {
+    RouteManager::get('profile', 'ProfileController@show');
+    RouteManager::put('profile', 'ProfileController@update');
+    RouteManager::delete('account', 'AccountController@destroy');
 });
 
 // Nested groups with different middleware
-ApiManager::group(['middleware' => ['auth']], function() {
+RouteManager::group(['middleware' => ['auth']], function() {
     // User routes
-    ApiManager::get('profile', 'ProfileController@show');
+    RouteManager::get('profile', 'ProfileController@show');
     
     // Admin routes (additional middleware)
-    ApiManager::group(['middleware' => ['capability:manage_options']], function() {
-        ApiManager::get('users', 'AdminController@users');
-        ApiManager::delete('users/{id}', 'AdminController@deleteUser');
+    RouteManager::group(['middleware' => ['capability:manage_options']], function() {
+        RouteManager::get('users', 'AdminController@users');
+        RouteManager::delete('users/{id}', 'AdminController@deleteUser');
     });
 });
 ```
@@ -237,10 +237,10 @@ Apply middleware to all routes:
 // In your theme/plugin initialization
 add_action('rest_api_init', function() {
     // Register global middleware
-    ApiManager::globalMiddleware(['cors', 'logging']);
+    RouteManager::globalMiddleware(['cors', 'logging']);
     
     // Your routes...
-    ApiManager::resource('products', 'ProductController');
+    RouteManager::resource('products', 'ProductController');
 });
 ```
 
@@ -287,8 +287,8 @@ class ConditionalMiddleware implements MiddlewareInterface
             return $this->handleAdminRequest($request, $next);
         }
         
-        if ($this->isApiRequest($request)) {
-            return $this->handleApiRequest($request, $next);
+        if ($this->isRouteRequest($request)) {
+            return $this->handleRouteRequest($request, $next);
         }
         
         return $next($request);
@@ -299,7 +299,7 @@ class ConditionalMiddleware implements MiddlewareInterface
         return strpos($request->get_route(), '/admin/') === 0;
     }
     
-    private function isApiRequest($request)
+    private function isRouteRequest($request)
     {
         return strpos($request->get_route(), '/api/') === 0;
     }

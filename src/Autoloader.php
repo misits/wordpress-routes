@@ -17,7 +17,7 @@ class Autoloader
     /**
      * Namespace prefix
      */
-    const NAMESPACE_PREFIX = 'WordPressRoutes\\';
+    public const string NAMESPACE_PREFIX = "WordPressRoutes\\";
 
     /**
      * Base directory for the namespace prefix
@@ -29,8 +29,8 @@ class Autoloader
      */
     public static function register()
     {
-        self::$baseDir = dirname(__FILE__) . '/';
-        spl_autoload_register([__CLASS__, 'loadClass']);
+        self::$baseDir = dirname(__FILE__) . "/";
+        spl_autoload_register([__CLASS__, "loadClass"]);
     }
 
     /**
@@ -54,7 +54,8 @@ class Autoloader
         // Replace the namespace prefix with the base directory, replace namespace
         // separators with directory separators in the relative class name, append
         // with .php
-        $file = self::$baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+        $file =
+            self::$baseDir . str_replace("\\", "/", $relativeClass) . ".php";
 
         // If the file exists, require it
         if (file_exists($file)) {
@@ -68,19 +69,21 @@ class Autoloader
     public static function loadCore()
     {
         $coreClasses = [
-            'ApiRoute',
-            'ApiManager', 
-            'ApiRequest',
-            'BaseController',
-            'ControllerAutoloader',
-            'MiddlewareRegistry',
-            'Middleware/MiddlewareInterface',
-            'Middleware/AuthMiddleware',
-            'Middleware/RateLimitMiddleware',
+            "Route",
+            "RouteManager",
+            "RouteRequest",
+            "BaseController",
+            "ControllerAutoloader",
+            "MiddlewareRegistry",
+            "Middleware/MiddlewareInterface",
+            "Middleware/AuthMiddleware",
+            "Middleware/RateLimitMiddleware",
+            "Validation/Validator",
+            "Validation/FormRequest",
         ];
 
         foreach ($coreClasses as $class) {
-            $file = self::$baseDir . $class . '.php';
+            $file = self::$baseDir . $class . ".php";
             if (file_exists($file)) {
                 require_once $file;
             }
