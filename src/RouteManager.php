@@ -55,6 +55,9 @@ class RouteManager
      */
     public static function boot()
     {
+        // Initialize middleware registry
+        MiddlewareRegistry::init();
+        
         self::init();
     }
 

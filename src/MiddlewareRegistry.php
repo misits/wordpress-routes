@@ -34,13 +34,13 @@ class MiddlewareRegistry
     public static function init()
     {
         static::$builtIn = [
-            'auth' => Middleware\AuthMiddleware::class,
-            'capability' => Middleware\CapabilityMiddleware::class,
-            'rate_limit' => Middleware\RateLimitMiddleware::class,
-            'cors' => Middleware\CorsMiddleware::class,
-            'validate' => Middleware\ValidationMiddleware::class,
-            'json_only' => Middleware\JsonOnlyMiddleware::class,
-            'nonce' => Middleware\NonceMiddleware::class,
+            "auth" => Middleware\AuthMiddleware::class,
+            "capability" => Middleware\CapabilityMiddleware::class,
+            "rate_limit" => Middleware\RateLimitMiddleware::class,
+            "cors" => Middleware\CorsMiddleware::class,
+            "validate" => Middleware\ValidationMiddleware::class,
+            "json_only" => Middleware\JsonOnlyMiddleware::class,
+            "nonce" => Middleware\NonceMiddleware::class,
         ];
     }
 
@@ -95,7 +95,10 @@ class MiddlewareRegistry
      */
     public static function all()
     {
-        return array_merge(array_keys(static::$builtIn), array_keys(static::$middleware));
+        return array_merge(
+            array_keys(static::$builtIn),
+            array_keys(static::$middleware),
+        );
     }
 
     /**
@@ -106,7 +109,8 @@ class MiddlewareRegistry
      */
     public static function has($name)
     {
-        return isset(static::$middleware[$name]) || isset(static::$builtIn[$name]);
+        return isset(static::$middleware[$name]) ||
+            isset(static::$builtIn[$name]);
     }
 
     /**
@@ -131,19 +135,46 @@ class MiddlewareRegistry
      * Resolve middleware to instance
      *
      * @param string|callable $middleware
-     * @return object|callable
+     * @return object|callable|null
      */
-    protected static function resolve($middleware)
+    public static function resolve($middleware)
     {
         if (is_callable($middleware)) {
             return $middleware;
         }
 
-        if (is_string($middleware) && class_exists($middleware)) {
-            return new $middleware();
+        if (is_string($middleware)) {
+            // First check if it's a registered middleware name
+            if (isset(static::$middleware[$middleware])) {
+                $class = static::$middleware[$middleware];
+                if (is_callable($class)) {
+                    return $class;
+                }
+                if (is_string($class) && class_exists($class)) {
+                    return new $class();
+                }
+                return $class;
+            }
+
+            // Check built-in middleware
+            if (isset(static::$builtIn[$middleware])) {
+                $class = static::$builtIn[$middleware];
+                if (is_callable($class)) {
+                    return $class;
+                }
+                if (is_string($class) && class_exists($class)) {
+                    return new $class();
+                }
+                return $class;
+            }
+
+            // Finally check if it's a direct class name
+            if (class_exists($middleware)) {
+                return new $middleware();
+            }
         }
 
-        return $middleware;
+        return null;
     }
 
     /**
@@ -154,10 +185,12 @@ class MiddlewareRegistry
      */
     public static function group($name, array $middleware)
     {
-        static::register($name, function(RouteRequest $request) use ($middleware) {
+        static::register($name, function (RouteRequest $request) use (
+            $middleware,
+        ) {
             foreach ($middleware as $middlewareName) {
                 $instance = static::get($middlewareName);
-                if ($instance && method_exists($instance, 'handle')) {
+                if ($instance && method_exists($instance, "handle")) {
                     $result = $instance->handle($request);
                     if ($result !== null) {
                         return $result;

@@ -29,6 +29,13 @@ class RouteRequest
     protected $json;
 
     /**
+     * Validated data from middleware
+     *
+     * @var array|null
+     */
+    protected $validatedData;
+
+    /**
      * Create Route request wrapper
      *
      * @param \WP_REST_Request $request
@@ -194,6 +201,26 @@ class RouteRequest
         }
         
         return $params[$key] ?? $default;
+    }
+
+    /**
+     * Get JSON data from request body
+     *
+     * @param string|null $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function json($key = null, $default = null)
+    {
+        if ($this->json === null) {
+            $this->json = $this->request->get_json_params() ?: [];
+        }
+
+        if ($key === null) {
+            return $this->json;
+        }
+
+        return $this->json[$key] ?? $default;
     }
 
     /**
@@ -482,5 +509,53 @@ class RouteRequest
     public function merge(array $data)
     {
         return $this->setData($data);
+    }
+
+    /**
+     * Get raw request body
+     *
+     * @return string
+     */
+    public function getBody()
+    {
+        return $this->request->get_body();
+    }
+
+    /**
+     * Set validated data from middleware
+     *
+     * @param array $data
+     * @return $this
+     */
+    public function setValidatedData(array $data)
+    {
+        $this->validatedData = $data;
+        return $this;
+    }
+
+    /**
+     * Get validated data from middleware
+     *
+     * @param string|null $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public function validated($key = null, $default = null)
+    {
+        if ($key === null) {
+            return $this->validatedData ?? [];
+        }
+
+        return $this->validatedData[$key] ?? $default;
+    }
+
+    /**
+     * Check if request has validated data
+     *
+     * @return bool
+     */
+    public function hasValidatedData()
+    {
+        return !empty($this->validatedData);
     }
 }

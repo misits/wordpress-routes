@@ -1,6 +1,6 @@
 <?php
 
-namespace WordPressRoutes\Validation;
+namespace WordPressRoutes\Routing\Validation;
 
 defined("ABSPATH") or exit();
 

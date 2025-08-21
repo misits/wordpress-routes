@@ -1,6 +1,6 @@
 <?php
 
-namespace WordPressRoutes\Validation;
+namespace WordPressRoutes\Routing\Validation;
 
 use WordPressRoutes\Routing\RouteRequest;
 
