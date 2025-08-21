@@ -180,14 +180,27 @@ class Route
     /**
      * Process middleware
      *
-     * @param string $middleware
+     * @param string|callable $middleware
      * @param RouteRequest $request
      * @return mixed|null
      */
     protected function processMiddleware($middleware, RouteRequest $request)
     {
-        // Parse middleware with parameters
-        if (strpos($middleware, ':') !== false) {
+        // Handle callable middleware directly
+        if (is_callable($middleware)) {
+            try {
+                return $middleware($request);
+            } catch (\Exception $e) {
+                return new \WP_Error(
+                    'middleware_error',
+                    $e->getMessage(),
+                    ['status' => 500]
+                );
+            }
+        }
+
+        // Handle string middleware with parameters
+        if (is_string($middleware) && strpos($middleware, ':') !== false) {
             [$middlewareName, $parameters] = explode(':', $middleware, 2);
             $parameters = explode(',', $parameters);
         } else {
