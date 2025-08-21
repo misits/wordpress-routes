@@ -347,7 +347,20 @@ class ApiRequest
      */
     public function isAuthenticated()
     {
-        return is_user_logged_in();
+        // Check if user is logged in (works with cookie auth and application passwords)
+        if (is_user_logged_in()) {
+            return true;
+        }
+        
+        // Check for nonce-based authentication (WordPress default for logged-in users)
+        $nonce = $this->header('X-WP-Nonce') ?: $this->query('_wpnonce');
+        if ($nonce && wp_verify_nonce($nonce, 'wp_rest')) {
+            return true;
+        }
+        
+        // Check if current user was determined by WordPress REST API
+        $current_user_id = get_current_user_id();
+        return $current_user_id > 0;
     }
 
     /**
