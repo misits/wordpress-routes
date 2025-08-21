@@ -1,0 +1,67 @@
+# Development environment
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+/build
+*.min.js
+*.min.css
+
+# Cache files
+*.cache
+.cache/
+.npm-cache/
+.yarn-cache/
+
+# Dependencies
+/node_modules
+/vendor
+composer.lock
+package-lock.json
+yarn.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# WordPress specific
+*.bak
+*.orig
+*.rej
+*.sql
+*.sqlite
+
+# PHP specific
+*.php~
+*.php.bak
+*.php.swp
+*.php.swo
+phpunit.xml
+phpunit.xml.dist
+.phpunit.result.cache
+.php_cs.cache
+.php-cs-fixer.cache
+.phpunit.cache
+.php_cs
+.php-cs-fixer.php
+.phpunit
+.php_cs.dist
+.php-cs-fixer.dist.php
+.phpunit.dist.xml
+.phpunit.dist.xml.bak
+.phpunit.dist.xml.swp
+.phpunit.dist.xml.swo
+.phpunit.dist.xml~
+.phpunit.dist.xml.bak~
+.phpunit.dist.xml.swp~
+.phpunit.dist.xml.swo~
