@@ -403,7 +403,7 @@ This creates a complete user management API with public listing, protected profi
 ## Compatibility
 
 - WordPress 5.0+
-- PHP 7.4+
+- PHP 8.0+
 - Works with any WordPress theme or plugin
 - Compatible with WordPress ORM
 - Integrates with existing WordPress REST API
