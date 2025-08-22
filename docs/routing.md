@@ -140,12 +140,12 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
 The `routes.php` file should be placed in:
 
 **Theme Mode:**
-- `{theme}/routes.php` ⭐ **Recommended**
+- `{theme}/routes.php` (Recommended)
 - `{theme}/routes/api.php`
 - `{theme}/api/routes.php`
 
 **Plugin Mode:**
-- `{plugin}/routes.php` ⭐ **Recommended**  
+- `{plugin}/routes.php` (Recommended)  
 - `{plugin}/routes/api.php`
 - `{plugin}/src/routes.php`
 

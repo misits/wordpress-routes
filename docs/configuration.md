@@ -2,7 +2,7 @@
 
 WordPress Routes provides flexible configuration options for different development environments.
 
-## ⭐ Automatic Route Loading (New!)
+##  Automatic Route Loading 
 
 **Zero Configuration Required!** WordPress Routes now automatically detects and loads your routes based on `WPROUTES_MODE`.
 
@@ -29,15 +29,15 @@ RouteManager::get('health', function($request) {
 ### Auto-Detection Paths
 
 **Theme Mode:** Searches in order:
-- `{child-theme}/routes.php` ⭐
+- `{child-theme}/routes.php` 
 - `{child-theme}/routes/api.php`
 - `{child-theme}/api/routes.php`
-- `{parent-theme}/routes.php` ⭐
+- `{parent-theme}/routes.php` 
 - `{parent-theme}/routes/api.php`
 - `{parent-theme}/api/routes.php`
 
 **Plugin Mode:** Searches in order:
-- `{plugin-root}/routes.php` ⭐
+- `{plugin-root}/routes.php` 
 - `{plugin-root}/routes/api.php`
 - `{plugin-root}/src/routes.php`
 

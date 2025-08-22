@@ -29,7 +29,7 @@ define("WPROUTES_MODE", "theme");
 require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
 ```
 
-### 3. Create Your Routes File ⭐
+### 3. Create Your Routes File 
 
 Create a `routes.php` file in your theme root:
 
@@ -54,7 +54,7 @@ WordPress Routes will automatically use these directories:
 
 ```
 /wp-content/themes/your-theme/
-├── routes.php             # ⭐ Auto-loaded routes (NEW!)
+├── routes.php             #  Auto-loaded routes 
 ├── controllers/           # Your API controllers  
 ├── middleware/           # Your custom middleware
 └── api/
