@@ -1,15 +1,17 @@
 # WordPress Routes (WPRoutes)
 
-A powerful API routing system for WordPress with middleware support. Create Laravel-like REST API endpoints that integrate seamlessly with WordPress REST API infrastructure.
+A unified routing system for WordPress supporting **API, Web, Admin, and AJAX routes** with Laravel-style syntax, middleware support, and flexible template system.
 
 ## Features
 
-- 🚀 **Laravel-style API routing** - Familiar syntax for creating powerful APIs
-- 🛡️ **Middleware support** - Authentication, rate limiting, validation, and more
-- 🔗 **WordPress integration** - Works with existing WordPress REST API
-- ⚡ **High performance** - Optimized for speed with minimal overhead
-- 🎯 **Clean architecture** - Following WordPress ORM patterns
-- 📦 **No dependencies** - Just include and use
+- 🌐 **4 Route Types** - API, Web, Admin, and AJAX routes in one unified system
+- 📄 **Template Support** - Custom templates for Web and Admin routes with data binding
+- 🚀 **Laravel-style syntax** - Familiar, elegant routing syntax
+- 🛡️ **Middleware support** - Authentication, rate limiting, validation, CORS, and more
+- 🔗 **WordPress integration** - Works with existing WordPress systems
+- 📦 **Plugin & Theme modes** - Flexible deployment options
+- ⚡ **High performance** - Optimized with simplified architecture
+- 🎯 **PHP 8+ features** - Modern PHP with union types, match expressions
 
 ## Installation
 
@@ -20,9 +22,9 @@ Include the WPRoutes library in your WordPress theme or plugin:
 require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
 ```
 
-## Zero-Configuration Setup ⭐
+## Zero-Configuration Setup
 
-**NEW:** WordPress Routes now automatically loads your routes! Just create a `routes.php` file and it's automatically detected based on your `WPROUTES_MODE`:
+WordPress Routes automatically loads your routes! Just create a `routes.php` file and it's automatically detected based on your `WPROUTES_MODE`:
 
 ### Theme Mode (Default)
 ```php
@@ -71,30 +73,94 @@ require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
 require_once get_template_directory() . '/my-custom-routes.php';
 ```
 
-## Quick Start
+## Quick Start - Unified Route System
 
-### Basic API Routes
+### The New Route Class
+WordPress Routes now provides a **unified Route class** that handles all route types with a consistent API:
 
 ```php
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
-// Simple GET endpoint
-RouteManager::get('users', function($request) {
+// API Routes (REST API endpoints)
+Route::get('users', function($request) {
     return ['users' => get_users()];
 });
 
-// POST endpoint with data
-RouteManager::post('users', function($request) {
-    $data = $request->input();
-    // Create user logic
-    return ['created' => true];
-});
+// Web Routes (frontend pages with templates)
+Route::web('about', function($request) {
+    return ['projects' => get_posts()];
+})->template('about.php');
 
-// Route with parameters
-RouteManager::get('users/(?P<id>[\d]+)', function($request) {
-    $id = $request->param('id');
-    return get_user_by('ID', $id);
-});
+// Admin Routes (dashboard pages)
+Route::admin('settings', 'App Settings', function($request) {
+    return ['settings' => get_option('app_settings')];
+})->template('admin-settings.php');
+
+// AJAX Routes (WordPress AJAX handlers)
+Route::ajax('save_data', function($request) {
+    return ['saved' => true];
+})->auth();
+```
+
+### Route Types Overview
+
+#### 1. API Routes
+Traditional REST API endpoints accessible via `/wp-json/your-namespace/endpoint`:
+
+```php
+Route::get('posts', function($request) {
+    return get_posts();
+})->middleware('auth');
+
+Route::post('contact', function($request) {
+    $data = $request->validated();
+    // Process contact form
+    return ['message' => 'Email sent'];
+})->validate(['email' => 'required|email']);
+```
+
+#### 2. Web Routes
+Frontend pages with custom templates and WordPress integration:
+
+```php
+Route::web('portfolio', function($request) {
+    return [
+        'projects' => get_posts(['post_type' => 'project']),
+        'skills' => get_option('skills')
+    ];
+})
+->template('portfolio.php')  // Uses theme/portfolio.php
+->title('My Portfolio');
+```
+
+#### 3. Admin Routes  
+WordPress admin dashboard pages with full template support:
+
+```php
+Route::admin('analytics', 'Analytics Dashboard', function($request) {
+    return [
+        'stats' => get_analytics_data(),
+        'charts' => get_chart_data()
+    ];
+})
+->template('admin/analytics.php')  // Custom admin template
+->capability('manage_options')
+->icon('dashicons-chart-bar')
+->position(25);
+```
+
+#### 4. AJAX Routes
+WordPress AJAX handlers for both authenticated and public requests:
+
+```php
+Route::ajax('update_settings', function($request) {
+    update_option('my_setting', $request->input('value'));
+    return ['updated' => true];
+})->auth();  // Requires authentication
+
+Route::ajax('public_data', function($request) {
+    return ['data' => get_public_data()];
+})->public();  // No authentication required
 ```
 
 ### Using Middleware
@@ -141,6 +207,142 @@ RouteManager::resource('posts', 'PostController');
 RouteManager::resource('comments', 'CommentController', [
     'only' => ['index', 'show', 'store']
 ]);
+```
+
+## Template System
+
+WordPress Routes provides a powerful template system for Web and Admin routes with support for both **Theme** and **Plugin** modes.
+
+### Web Route Templates
+
+Web routes can use custom templates with data binding:
+
+```php
+Route::web('about', function($request) {
+    return [
+        'company' => 'My Company',
+        'team' => get_users(['role' => 'author']),
+        'projects' => get_posts(['post_type' => 'project'])
+    ];
+})->template('about.php');
+```
+
+**Template file** (`theme/about.php`):
+```php
+<?php
+// Data is available via $GLOBALS['route_data'] or extracted variables
+$company = $company ?? $GLOBALS['route_data']['company'] ?? 'Default Company';
+$team = $team ?? $GLOBALS['route_data']['team'] ?? [];
+
+get_header();
+?>
+<h1>About <?php echo esc_html($company); ?></h1>
+<div class="team">
+    <?php foreach ($team as $member): ?>
+        <div class="member"><?php echo esc_html($member->display_name); ?></div>
+    <?php endforeach; ?>
+</div>
+<?php get_footer(); ?>
+```
+
+### Admin Route Templates
+
+Admin routes support custom templates for creating rich dashboard interfaces:
+
+```php
+Route::admin('analytics', 'Analytics Dashboard', function($request) {
+    return [
+        'total_users' => count(get_users()),
+        'recent_posts' => get_posts(['numberposts' => 5]),
+        'stats' => get_analytics_data()
+    ];
+})
+->template('admin-analytics.php')
+->icon('dashicons-chart-bar');
+```
+
+**Admin template** (`theme/admin-analytics.php`):
+```php
+<?php
+$data = $GLOBALS['admin_route_data'] ?? [];
+$request = $GLOBALS['admin_route_request'] ?? [];
+?>
+<div class="wrap">
+    <h1>Analytics Dashboard</h1>
+    
+    <div class="dashboard-widgets-wrap">
+        <div class="postbox">
+            <h2>Total Users</h2>
+            <p class="big-number"><?php echo intval($data['total_users']); ?></p>
+        </div>
+        
+        <div class="postbox">
+            <h2>Recent Posts</h2>
+            <?php foreach ($data['recent_posts'] as $post): ?>
+                <p><?php echo esc_html($post->post_title); ?></p>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+```
+
+### Template Resolution
+
+Templates are resolved in the following order based on `WPROUTES_MODE`:
+
+#### Theme Mode (Default)
+```php
+define('WPROUTES_MODE', 'theme'); // or omit for default
+```
+
+**Template resolution:**
+1. `child-theme/template.php`
+2. `parent-theme/template.php`
+3. WordPress `locate_template()` standard
+
+**Path support:**
+```php
+->template('page.php')              // Simple filename
+->template('admin/settings.php')   // Subfolder path
+->template('/absolute/path.php')   // Absolute path
+```
+
+#### Plugin Mode
+```php
+define('WPROUTES_MODE', 'plugin');
+```
+
+**Web routes search:**
+1. `plugin/templates/template.php`
+2. `plugin/views/template.php`
+3. `plugin/template.php`
+4. **Fallback to theme**
+
+**Admin routes search:**
+1. `plugin/admin-templates/template.php`
+2. `plugin/templates/admin/template.php`
+3. `plugin/templates/template.php`
+4. `plugin/views/admin/template.php`
+5. `plugin/views/template.php`
+6. `plugin/template.php`
+7. **Fallback to theme**
+
+### Template Examples by Mode
+
+**Theme Mode:**
+```php
+// These work in theme mode
+->template('about.php')                    // theme/about.php
+->template('pages/portfolio.php')         // theme/pages/portfolio.php
+->template('admin/dashboard.php')         // theme/admin/dashboard.php
+```
+
+**Plugin Mode:**
+```php
+// These work in plugin mode
+->template('about.php')                    // plugin/templates/about.php
+->template('admin/dashboard.php')         // plugin/admin-templates/dashboard.php
+->template('views/settings.php')          // plugin/views/settings.php
 ```
 
 ## Available Middleware

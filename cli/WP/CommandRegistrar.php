@@ -34,5 +34,7 @@ class CommandRegistrar
         
         // Register route commands
         \WP_CLI::add_command('wproutes route:list', [ControllerCommand::class, 'listRoutes']);
+        \WP_CLI::add_command('wproutes route:flush', [ControllerCommand::class, 'flushRoutes']);
+        \WP_CLI::add_command('wproutes route:debug', [ControllerCommand::class, 'debugRoutes']);
     }
 }

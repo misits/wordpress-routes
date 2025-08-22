@@ -68,13 +68,30 @@ class Autoloader
      */
     public static function loadCore()
     {
+        // Load traits first since Route class depends on them
+        $traitFiles = [
+            "Traits/HandlesApiRoutes",
+            "Traits/HandlesWebRoutes", 
+            "Traits/HandlesAdminRoutes",
+            "Traits/HandlesAjaxRoutes",
+        ];
+        
+        foreach ($traitFiles as $trait) {
+            $file = self::$baseDir . $trait . ".php";
+            if (file_exists($file)) {
+                require_once $file;
+            }
+        }
+        
+        // Then load other core classes
         $coreClasses = [
-            "Route",
-            "RouteManager",
+            "VirtualPage", // Load VirtualPage early for web routes
             "RouteRequest",
+            "RouteManager",
+            "MiddlewareRegistry",
             "BaseController",
             "ControllerAutoloader",
-            "MiddlewareRegistry",
+            "Route", // Load Route after traits
             "Middleware/MiddlewareInterface",
             "Middleware/AuthMiddleware",
             "Middleware/CapabilityMiddleware",

@@ -247,8 +247,11 @@ class RouteManager
             $endpoint = trim($groupAttributes['prefix'], '/') . '/' . ltrim($endpoint, '/');
         }
 
-        // Create route instance
-        $route = new Route($methods, $endpoint, $callback, $namespace);
+        // Create route instance (default to API type for RouteManager routes)
+        $route = new Route($methods, $endpoint, $callback, Route::TYPE_API);
+        
+        // Set the namespace explicitly
+        $route->setNamespace($namespace);
 
         // Apply middleware
         if (!empty($middleware)) {
@@ -325,12 +328,15 @@ class RouteManager
     {
         $routes = [];
         foreach (self::$routes as $key => $route) {
-            $routes[] = [
-                'methods' => implode(', ', $route->getMethods()),
-                'endpoint' => $route->getNamespace() . '/' . $route->getEndpoint(),
-                'callback' => $route->getCallbackDescription(),
-                'middleware' => implode(', ', $route->getMiddleware()),
-            ];
+            // Only include API routes in this list
+            if ($route->getType() === Route::TYPE_API) {
+                $routes[] = [
+                    'methods' => implode(', ', $route->getMethods()),
+                    'endpoint' => ($route->getNamespace() ?: self::$defaultNamespace) . '/' . $route->getEndpoint(),
+                    'callback' => $route->getCallbackDescription() ?? 'Custom Handler',
+                    'middleware' => implode(', ', $route->getMiddleware()),
+                ];
+            }
         }
         return $routes;
     }
@@ -367,7 +373,50 @@ class RouteManager
     public static function clearRoutes()
     {
         self::$routes = [];
+        self::$namedRoutes = [];
         self::$groupStack = [];
         self::$globalMiddleware = [];
+    }
+
+    /**
+     * Named routes collection
+     *
+     * @var array
+     */
+    protected static $namedRoutes = [];
+
+    /**
+     * Add a named route
+     *
+     * @param string $name
+     * @param Route $route
+     */
+    public static function addNamedRoute($name, Route $route)
+    {
+        self::$namedRoutes[$name] = $route;
+    }
+
+    /**
+     * Get named route
+     *
+     * @param string $name
+     * @return Route|null
+     */
+    public static function getNamedRoute($name)
+    {
+        return self::$namedRoutes[$name] ?? null;
+    }
+
+    /**
+     * Add a route instance to the collection
+     *
+     * @param Route $route
+     */
+    public static function addRouteInstance(Route $route)
+    {
+        $routeKey = implode('|', $route->getMethods()) . ':' . 
+                   ($route->getNamespace() ?: self::$defaultNamespace) . '/' . 
+                   $route->getEndpoint();
+        self::$routes[$routeKey] = $route;
     }
 }

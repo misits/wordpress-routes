@@ -2,31 +2,60 @@
 
 namespace WordPressRoutes\Routing;
 
+use WordPressRoutes\Routing\Traits\HandlesApiRoutes;
+use WordPressRoutes\Routing\Traits\HandlesWebRoutes;
+use WordPressRoutes\Routing\Traits\HandlesAdminRoutes;
+use WordPressRoutes\Routing\Traits\HandlesAjaxRoutes;
+
 defined("ABSPATH") or exit();
 
 /**
- * Route
+ * Universal Route Handler
  *
- * Represents a single route in the WordPress Routes system
- * Handles route registration, middleware, and request processing
+ * Handles all types of WordPress routes: API, Web, Admin, and AJAX
+ * Provides a unified Laravel-style routing interface using traits
  *
  * @since 1.0.0
  */
 class Route
 {
+    use HandlesApiRoutes, HandlesWebRoutes, HandlesAdminRoutes, HandlesAjaxRoutes;
+
+    /**
+     * Route type constants
+     */
+    const TYPE_API = 'api';
+    const TYPE_WEB = 'web';
+    const TYPE_ADMIN = 'admin';
+    const TYPE_AJAX = 'ajax';
+
+    /**
+     * Route type
+     *
+     * @var string
+     */
+    protected $type = self::TYPE_API;
+
     /**
      * HTTP methods
      *
      * @var array
      */
-    protected $methods;
+    protected $methods = [];
 
     /**
-     * Route endpoint
+     * Route path/endpoint
      *
      * @var string
      */
     protected $endpoint;
+
+    /**
+     * Route namespace (for API routes)
+     *
+     * @var string
+     */
+    protected $namespace;
 
     /**
      * Route callback
@@ -34,13 +63,6 @@ class Route
      * @var callable|string
      */
     protected $callback;
-
-    /**
-     * Route namespace
-     *
-     * @var string
-     */
-    protected $namespace;
 
     /**
      * Route middleware
@@ -57,45 +79,249 @@ class Route
     protected $name;
 
     /**
-     * Route arguments for WordPress REST API
+     * Route parameters
      *
      * @var array
      */
-    protected $args = [];
+    protected $params = [];
 
     /**
-     * Permission callback
+     * Route attributes
      *
-     * @var callable
+     * @var array
      */
-    protected $permissionCallback;
+    protected $attributes = [];
 
     /**
-     * Create a new route instance
+     * Admin page settings (for admin routes)
      *
-     * @param array $methods
+     * @var array
+     */
+    protected $adminSettings = [
+        'capability' => 'manage_options',
+        'icon' => 'dashicons-admin-generic',
+        'position' => null,
+        'parent' => null,
+        'menu_title' => null,
+        'page_title' => null,
+        'template' => null
+    ];
+
+    /**
+     * Web route settings
+     *
+     * @var array
+     */
+    protected $webSettings = [
+        'template' => null,
+        'title' => null,
+        'priority' => 'top'
+    ];
+
+    /**
+     * Create new route
+     *
+     * @param string|array $methods
      * @param string $endpoint
      * @param callable|string $callback
-     * @param string $namespace
+     * @param string $type
      */
-    public function __construct(array $methods, $endpoint, $callback, $namespace = 'wp/v2')
+    public function __construct($methods, $endpoint, $callback, $type = self::TYPE_API)
     {
-        $this->methods = $methods;
-        $this->endpoint = ltrim($endpoint, '/');
+        $this->methods = is_array($methods) ? $methods : [$methods];
+        $this->endpoint = $this->normalizeEndpoint($endpoint);
         $this->callback = $callback;
-        $this->namespace = trim($namespace, '/');
+        $this->type = $type;
+        
+        // Don't set namespace here - defer until registration to get current value
+        
+        $this->parseParameters();
+        
+        // Auto-register immediately - RouteManager will handle the WordPress hooks
+        $this->register();
     }
 
     /**
-     * Add middleware to route
+     * Create API route
      *
-     * @param array|string $middleware
-     * @return $this
+     * @param string|array $methods
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function api($methods, $endpoint, $callback)
+    {
+        return new static($methods, $endpoint, $callback, self::TYPE_API);
+    }
+
+    /**
+     * Create GET API route
+     *
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function get($endpoint, $callback)
+    {
+        return new static('GET', $endpoint, $callback, self::TYPE_API);
+    }
+
+    /**
+     * Create POST API route
+     *
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function post($endpoint, $callback)
+    {
+        return new static('POST', $endpoint, $callback, self::TYPE_API);
+    }
+
+    /**
+     * Create PUT API route
+     *
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function put($endpoint, $callback)
+    {
+        return new static('PUT', $endpoint, $callback, self::TYPE_API);
+    }
+
+    /**
+     * Create DELETE API route
+     *
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function delete($endpoint, $callback)
+    {
+        return new static('DELETE', $endpoint, $callback, self::TYPE_API);
+    }
+
+    /**
+     * Create PATCH API route
+     *
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function patch($endpoint, $callback)
+    {
+        return new static('PATCH', $endpoint, $callback, self::TYPE_API);
+    }
+
+    /**
+     * Create web route
+     *
+     * @param string $path
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function web($path, $callback)
+    {
+        return new static(['GET'], $path, $callback, self::TYPE_WEB);
+    }
+
+    /**
+     * Create admin route
+     *
+     * @param string $slug
+     * @param string $title
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function admin($slug, $title, $callback)
+    {
+        $route = new static(['GET', 'POST'], $slug, $callback, self::TYPE_ADMIN);
+        $route->adminSettings['page_title'] = $title;
+        $route->adminSettings['menu_title'] = $title;
+        return $route;
+    }
+
+    /**
+     * Create AJAX route
+     *
+     * @param string $action
+     * @param callable $callback
+     * @param bool $nopriv
+     * @return static
+     */
+    public static function ajax($action, $callback, $nopriv = false)
+    {
+        $route = new static(['POST'], $action, $callback, self::TYPE_AJAX);
+        $route->attributes['nopriv'] = $nopriv;
+        return $route;
+    }
+
+    /**
+     * Create a route group
+     *
+     * @param array $attributes
+     * @param callable $callback
+     * @return void
+     */
+    public static function group(array $attributes, callable $callback)
+    {
+        RouteManager::group($attributes, $callback);
+    }
+
+    /**
+     * Create a resource route
+     *
+     * @param string $name
+     * @param string $controller
+     * @param array $options
+     * @return void
+     */
+    public static function resource($name, $controller, array $options = [])
+    {
+        RouteManager::resource($name, $controller, $options);
+    }
+
+    /**
+     * Normalize endpoint
+     *
+     * @param string $endpoint
+     * @return string
+     */
+    protected function normalizeEndpoint($endpoint)
+    {
+        return trim($endpoint, '/');
+    }
+
+    /**
+     * Parse route parameters
+     */
+    protected function parseParameters()
+    {
+        preg_match_all('/{([^}]+)}/', $this->endpoint, $matches);
+        if (!empty($matches[1])) {
+            foreach ($matches[1] as $param) {
+                $paramName = str_replace('?', '', $param);
+                $this->params[$paramName] = $param;
+            }
+        }
+    }
+
+    /**
+     * Set route middleware
+     *
+     * @param string|array|callable $middleware
+     * @return self
      */
     public function middleware($middleware)
     {
-        $middleware = is_array($middleware) ? $middleware : [$middleware];
-        $this->middleware = array_merge($this->middleware, $middleware);
+        if (is_string($middleware)) {
+            $this->middleware[] = $middleware;
+        } elseif (is_array($middleware)) {
+            $this->middleware = array_merge($this->middleware, $middleware);
+        } elseif (is_callable($middleware)) {
+            $this->middleware[] = $middleware;
+        }
         return $this;
     }
 
@@ -103,350 +329,354 @@ class Route
      * Set route name
      *
      * @param string $name
-     * @return $this
+     * @return self
      */
     public function name($name)
     {
         $this->name = $name;
+        RouteManager::addNamedRoute($name, $this);
         return $this;
     }
 
     /**
-     * Set permission callback
+     * Set route namespace
      *
-     * @param callable $callback
-     * @return $this
+     * @param string $namespace
+     * @return self
      */
-    public function permission($callback)
+    public function setNamespace($namespace)
     {
-        $this->permissionCallback = $callback;
+        $this->namespace = $namespace;
         return $this;
     }
 
     /**
-     * Add validation rules for a parameter
+     * Set route attributes
      *
-     * @param string $param Parameter name
-     * @param array $rules Validation rules
-     * @return $this
+     * @param string $key
+     * @param mixed $value
+     * @return self
      */
-    public function validate($param, array $rules)
+    public function attribute($key, $value)
     {
-        $this->args[$param] = $rules;
+        $this->attributes[$key] = $value;
         return $this;
     }
 
     /**
-     * Register the route with WordPress REST API
+     * Whether the route has been registered
      *
-     * @return bool
+     * @var bool
+     */
+    protected $registered = false;
+
+    /**
+     * Register the route
+     *
+     * @return self
      */
     public function register()
     {
-        return register_rest_route(
-            $this->namespace,
-            $this->endpoint,
-            [
-                'methods' => $this->methods,
-                'callback' => [$this, 'handleRequest'],
-                'permission_callback' => $this->permissionCallback ?: '__return_true',
-                'args' => $this->args,
-            ]
-        );
+        // Prevent double registration
+        if ($this->registered) {
+            return $this;
+        }
+        
+        // Set namespace for API routes at registration time to get current value
+        if ($this->type === self::TYPE_API && !$this->namespace) {
+            $this->namespace = RouteManager::getNamespace();
+        }
+        
+        switch ($this->type) {
+            case self::TYPE_API:
+                $this->registerApiRoute();
+                break;
+            case self::TYPE_WEB:
+                $this->registerWebRoute();
+                break;
+            case self::TYPE_ADMIN:
+                $this->registerAdminRoute();
+                break;
+            case self::TYPE_AJAX:
+                $this->registerAjaxRoute();
+                break;
+        }
+        
+        // Add to route collection
+        RouteManager::addRouteInstance($this);
+        
+        $this->registered = true;
+        
+        return $this;
     }
 
     /**
-     * Handle incoming request
+     * Set additional capability check
+     * Works differently based on route type
      *
-     * @param \WP_REST_Request $request
-     * @return mixed
+     * @param string $capability
+     * @return self
      */
-    public function handleRequest(\WP_REST_Request $request)
+    public function can($capability)
     {
-        $routeRequest = new RouteRequest($request);
-
-        // Process middleware
-        foreach ($this->middleware as $middleware) {
-            $result = $this->processMiddleware($middleware, $routeRequest);
-            if ($result !== null) {
-                return $result; // Middleware blocked request
-            }
-        }
-
-        // Execute callback
-        return $this->executeCallback($routeRequest);
-    }
-
-    /**
-     * Process middleware
-     *
-     * @param string|callable $middleware
-     * @param RouteRequest $request
-     * @return mixed|null
-     */
-    protected function processMiddleware($middleware, RouteRequest $request)
-    {
-        // Handle callable middleware directly
-        if (is_callable($middleware)) {
-            try {
-                return $middleware($request);
-            } catch (\Exception $e) {
-                return new \WP_Error(
-                    'middleware_error',
-                    $e->getMessage(),
-                    ['status' => 500]
-                );
-            }
-        }
-
-        // Handle string middleware with parameters
-        if (is_string($middleware) && strpos($middleware, ':') !== false) {
-            [$middlewareName, $parameters] = explode(':', $middleware, 2);
-            $parameters = explode(',', $parameters);
+        if ($this->type === self::TYPE_ADMIN) {
+            // For admin routes, set the page capability
+            $this->adminSettings['capability'] = $capability;
         } else {
-            $middlewareName = $middleware;
-            $parameters = [];
+            // For other routes, add as middleware
+            $this->middleware('capability:' . $capability);
         }
-
-        // Get middleware instance
-        $middlewareInstance = MiddlewareRegistry::resolve($middlewareName);
-        if (!$middlewareInstance) {
-            return new \WP_Error(
-                'middleware_not_found',
-                "Middleware '{$middlewareName}' not found",
-                ['status' => 500]
-            );
-        }
-
-        // Execute middleware
-        try {
-            if (method_exists($middlewareInstance, 'handle')) {
-                return $middlewareInstance->handle($request, ...$parameters);
-            }
-            
-            if (is_callable($middlewareInstance)) {
-                return $middlewareInstance($request, ...$parameters);
-            }
-            
-            return new \WP_Error(
-                'invalid_middleware',
-                "Middleware '{$middlewareName}' is not callable",
-                ['status' => 500]
-            );
-        } catch (\Exception $e) {
-            return new \WP_Error(
-                'middleware_error',
-                $e->getMessage(),
-                ['status' => 500]
-            );
-        }
+        return $this;
     }
 
     /**
-     * Execute the route callback
+     * Set route as public (no auth required)
      *
-     * @param RouteRequest $request
-     * @return mixed
+     * @return self
      */
-    protected function executeCallback(RouteRequest $request)
+    public function public()
     {
-        try {
-            if (is_string($this->callback) && strpos($this->callback, '@') !== false) {
-                // Controller@method format
-                [$controllerClass, $method] = explode('@', $this->callback);
+        // Remove auth middleware if exists
+        $this->middleware = array_filter($this->middleware, function($m) {
+            return $m !== 'auth';
+        });
+        
+        // For AJAX routes, allow nopriv
+        if ($this->type === self::TYPE_AJAX) {
+            $this->nopriv(true);
+        }
+        
+        return $this;
+    }
+
+    /**
+     * Set route as private (auth required)
+     *
+     * @return self
+     */
+    public function private()
+    {
+        // Add auth middleware if not exists
+        if (!in_array('auth', $this->middleware)) {
+            array_unshift($this->middleware, 'auth');
+        }
+        
+        // For AJAX routes, disable nopriv
+        if ($this->type === self::TYPE_AJAX) {
+            $this->nopriv(false);
+        }
+        
+        return $this;
+    }
+
+    /**
+     * Add CORS support (mainly for API routes)
+     *
+     * @param array|string $origins
+     * @return self
+     */
+    public function cors($origins = '*')
+    {
+        if ($origins === '*') {
+            $this->middleware('cors');
+        } else {
+            $this->middleware(function($request) use ($origins) {
+                $allowedOrigins = is_array($origins) ? $origins : [$origins];
+                $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
                 
-                // Load controller if needed
-                if (!class_exists($controllerClass)) {
-                    // Try to load from controllers directory
-                    $loaded = wp_routes_load_controller($controllerClass);
-                    if (!$loaded) {
-                        return new \WP_Error(
-                            'controller_not_found',
-                            "Controller '{$controllerClass}' not found",
-                            ['status' => 500]
-                        );
-                    }
+                if (in_array($origin, $allowedOrigins) || in_array('*', $allowedOrigins)) {
+                    header('Access-Control-Allow-Origin: ' . $origin);
+                    header('Access-Control-Allow-Methods: ' . implode(', ', $this->methods));
+                    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-WP-Nonce');
+                    header('Access-Control-Allow-Credentials: true');
                 }
-
-                $controller = new $controllerClass();
                 
-                if (!method_exists($controller, $method)) {
-                    return new \WP_Error(
-                        'method_not_found',
-                        "Method '{$method}' not found in controller '{$controllerClass}'",
-                        ['status' => 500]
-                    );
+                if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+                    exit(0);
                 }
-
-                return $controller->$method($request);
-            }
-
-            if (is_callable($this->callback)) {
-                return call_user_func($this->callback, $request);
-            }
-
-            return new \WP_Error(
-                'invalid_callback',
-                'Route callback is not callable',
-                ['status' => 500]
-            );
-        } catch (\Exception $e) {
-            return new \WP_Error(
-                'callback_error',
-                $e->getMessage(),
-                ['status' => 500]
-            );
+                
+                return null;
+            });
         }
-    }
-
-    // Getters
-
-    /**
-     * Get route methods
-     *
-     * @return array
-     */
-    public function getMethods()
-    {
-        return $this->methods;
+        
+        return $this;
     }
 
     /**
-     * Get route endpoint
+     * Quick validation setup
      *
-     * @return string
+     * @param array $rules
+     * @param array $messages
+     * @return self
      */
-    public function getEndpoint()
+    public function validate(array $rules, array $messages = [])
     {
-        return $this->endpoint;
+        $this->middleware(\WordPressRoutes\Routing\Middleware\ValidationMiddleware::rules($rules, $messages));
+        return $this;
     }
 
     /**
-     * Get route callback
+     * Rate limit the route
      *
-     * @return callable|string
+     * @param int $requests
+     * @param int $minutes
+     * @return self
      */
-    public function getCallback()
+    public function rateLimit($requests = 60, $minutes = 1)
     {
-        return $this->callback;
+        $this->middleware(['rate_limit', $requests, $minutes]);
+        return $this;
     }
 
+    // Getters for route information
+    
+    public function getType() { return $this->type; }
+    public function getMethods() { return $this->methods; }
+    public function getEndpoint() { return $this->endpoint; }
+    public function getNamespace() { return $this->namespace; }
+    public function getName() { return $this->name; }
+    public function getMiddleware() { return $this->middleware; }
+    public function getCallback() { return $this->callback; }
+    public function getParams() { return $this->params; }
+    public function getAttributes() { return $this->attributes; }
+    
     /**
      * Get callback description for CLI display
-     *
-     * @return string
      */
     public function getCallbackDescription()
     {
         if (is_string($this->callback)) {
             return $this->callback;
         }
-        
-        if (is_callable($this->callback)) {
-            if (is_array($this->callback)) {
-                $class = is_object($this->callback[0]) ? get_class($this->callback[0]) : $this->callback[0];
-                return $class . '@' . $this->callback[1];
-            }
-            return 'Closure';
-        }
-        
-        return 'Unknown';
+        return 'Custom Handler';
     }
-
+    
     /**
-     * Get route namespace
-     *
-     * @return string
-     */
-    public function getNamespace()
-    {
-        return $this->namespace;
-    }
-
-    /**
-     * Get route middleware
+     * Convert route to array representation
      *
      * @return array
      */
-    public function getMiddleware()
+    public function toArray()
     {
-        return $this->middleware;
+        return [
+            'type' => $this->type,
+            'methods' => $this->methods,
+            'endpoint' => $this->endpoint,
+            'namespace' => $this->namespace,
+            'name' => $this->name,
+            'middleware' => array_map(function($m) {
+                return is_callable($m) ? 'callable' : $m;
+            }, $this->middleware),
+            'params' => array_keys($this->params),
+            'attributes' => $this->attributes
+        ];
     }
 
-    /**
-     * Get route name
-     *
-     * @return string|null
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
+    // Add trait-specific method implementations to avoid conflicts
 
     /**
-     * Get route arguments
-     *
-     * @return array
+     * Set page template (web routes) - Implementation in trait
+     * @param string $template
+     * @return self
      */
-    public function getArgs()
+    public function template($template)
     {
-        return $this->args;
-    }
-
-    /**
-     * Get full route pattern
-     *
-     * @return string
-     */
-    public function getPattern()
-    {
-        return '/' . $this->namespace . '/' . $this->endpoint;
-    }
-
-    /**
-     * Check if route matches given method and path
-     *
-     * @param string $method
-     * @param string $path
-     * @return bool
-     */
-    public function matches($method, $path)
-    {
-        if (!in_array(strtoupper($method), $this->methods)) {
-            return false;
+        if ($this->type === self::TYPE_WEB) {
+            $this->webSettings['template'] = $template;
         }
-
-        $pattern = $this->getPattern();
-        
-        // Convert WordPress REST API regex patterns to standard regex
-        $pattern = str_replace('(?P<', '(?<', $pattern);
-        $pattern = preg_quote($pattern, '/');
-        $pattern = str_replace('\(\?\<', '(?<', $pattern);
-        
-        return preg_match('/^' . $pattern . '$/', $path);
+        return $this;
     }
-}
 
-// Helper function for controller loading (backward compatibility)
-if (!function_exists('wp_routes_load_controller')) {
-    function wp_routes_load_controller($controllerName)
+    /**
+     * Set page title - Implementation varies by route type
+     * @param string|callable $title
+     * @return self
+     */
+    public function title($title)
     {
-        // Try existing function first
-        if (function_exists('wproutes_load_controller')) {
-            return wproutes_load_controller($controllerName);
+        if ($this->type === self::TYPE_WEB) {
+            $this->webSettings['title'] = $title;
+        } elseif ($this->type === self::TYPE_ADMIN) {
+            $this->adminSettings['page_title'] = $title;
         }
-        
-        // Fallback loading logic
-        $paths = defined('WPROUTES_CONTROLLER_PATHS') ? WPROUTES_CONTROLLER_PATHS : [];
-        
-        foreach ($paths as $path) {
-            $file = $path . '/' . $controllerName . '.php';
-            if (file_exists($file)) {
-                require_once $file;
-                return class_exists($controllerName);
-            }
+        return $this;
+    }
+
+    /**
+     * Set route priority (web routes)
+     * @param string $priority
+     * @return self
+     */
+    public function priority($priority = 'top')
+    {
+        if ($this->type === self::TYPE_WEB) {
+            $this->webSettings['priority'] = $priority;
         }
-        
-        return false;
+        return $this;
+    }
+
+    /**
+     * Set admin icon
+     * @param string $icon
+     * @return self
+     */
+    public function icon($icon)
+    {
+        if ($this->type === self::TYPE_ADMIN) {
+            $this->adminSettings['icon'] = $icon;
+        }
+        return $this;
+    }
+
+    /**
+     * Set admin menu position
+     * @param int $position
+     * @return self
+     */
+    public function position($position)
+    {
+        if ($this->type === self::TYPE_ADMIN) {
+            $this->adminSettings['position'] = $position;
+        }
+        return $this;
+    }
+
+    /**
+     * Set admin parent menu
+     * @param string $parent
+     * @return self
+     */
+    public function parent($parent)
+    {
+        if ($this->type === self::TYPE_ADMIN) {
+            $this->adminSettings['parent'] = $parent;
+        }
+        return $this;
+    }
+
+    /**
+     * Set menu title (admin routes)
+     * @param string $title
+     * @return self
+     */
+    public function menu($title)
+    {
+        if ($this->type === self::TYPE_ADMIN) {
+            $this->adminSettings['menu_title'] = $title;
+        }
+        return $this;
+    }
+
+    /**
+     * Allow non-privileged access (AJAX routes)
+     * @param bool $allow
+     * @return self
+     */
+    public function nopriv($allow = true)
+    {
+        if ($this->type === self::TYPE_AJAX) {
+            $this->attributes['nopriv'] = $allow;
+        }
+        return $this;
     }
 }

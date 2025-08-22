@@ -296,4 +296,53 @@ class ControllerAutoloader
         $filename = basename($file, '.php');
         return strpos($filename, 'Controller') !== false;
     }
+
+    /**
+     * Resolve controller class name to instance
+     *
+     * @param string $controller Controller class name or short name
+     * @return object|null Controller instance or null if not found
+     */
+    public static function resolve($controller)
+    {
+        // Handle fully qualified class name
+        if (class_exists($controller)) {
+            return new $controller();
+        }
+
+        // Try with common namespace prefixes
+        $possibleClasses = [
+            $controller,
+            'App\\Controllers\\' . $controller,
+            'Controllers\\' . $controller,
+            'App\\Http\\Controllers\\' . $controller,
+        ];
+
+        // Add Controller suffix if not present
+        if (strpos($controller, 'Controller') === false) {
+            $possibleClasses[] = $controller . 'Controller';
+            $possibleClasses[] = 'App\\Controllers\\' . $controller . 'Controller';
+            $possibleClasses[] = 'Controllers\\' . $controller . 'Controller';
+            $possibleClasses[] = 'App\\Http\\Controllers\\' . $controller . 'Controller';
+        }
+
+        // Try to find and instantiate the controller
+        foreach ($possibleClasses as $className) {
+            if (class_exists($className)) {
+                return new $className();
+            }
+        }
+
+        // Try to auto-discover the controller
+        $controllers = static::discoverControllers(true);
+        
+        // Try again after discovery
+        foreach ($possibleClasses as $className) {
+            if (class_exists($className)) {
+                return new $className();
+            }
+        }
+
+        return null;
+    }
 }

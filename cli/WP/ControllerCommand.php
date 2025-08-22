@@ -373,7 +373,7 @@ class {$name}{$extendsLine}
     }
 
     /**
-     * List all registered routes
+     * List all registered routes categorized by type
      *
      * ## EXAMPLES
      *
@@ -384,61 +384,273 @@ class {$name}{$extendsLine}
      */
     public function listRoutes($args, $assoc_args)
     {
-        \WP_CLI::line("Registered Routes:");
-        \WP_CLI::line("");
-        
         // Ensure routes are loaded first
         if (function_exists('wproutes_auto_load_routes')) {
             wproutes_auto_load_routes();
         }
         
         // Get registered routes from RouteManager
-        if (class_exists('\\WordPressRoutes\\Routing\\RouteManager')) {
-            $routes = \WordPressRoutes\Routing\RouteManager::getRoutes();
+        if (!class_exists('\\WordPressRoutes\\Routing\\RouteManager')) {
+            \WP_CLI::warning("RouteManager class not found. Make sure WordPress Routes is loaded.");
+            return;
+        }
+        
+        $routes = \WordPressRoutes\Routing\RouteManager::getRoutes();
+        
+        if (empty($routes)) {
+            \WP_CLI::line("No routes registered.");
+            return;
+        }
+        
+        // Categorize routes by type
+        $routesByType = [
+            'api' => [],
+            'web' => [],
+            'admin' => [],
+            'ajax' => []
+        ];
+        
+        foreach ($routes as $route) {
+            if (is_object($route) && method_exists($route, 'getType')) {
+                $type = $route->getType();
+                if (isset($routesByType[$type])) {
+                    $routesByType[$type][] = $route;
+                }
+            }
+        }
+        
+        // Display API Routes
+        if (!empty($routesByType['api'])) {
+            \WP_CLI::line("API Routes (REST API):");
+            \WP_CLI::line("");
+            foreach ($routesByType['api'] as $route) {
+                $this->displayApiRoute($route);
+            }
+            \WP_CLI::line("");
+        }
+        
+        // Display Web Routes
+        if (!empty($routesByType['web'])) {
+            \WP_CLI::line("Web Routes (Frontend Pages):");
+            \WP_CLI::line("");
+            foreach ($routesByType['web'] as $route) {
+                $this->displayWebRoute($route);
+            }
+            \WP_CLI::line("");
+        }
+        
+        // Display Admin Routes
+        if (!empty($routesByType['admin'])) {
+            \WP_CLI::line("Admin Routes (Dashboard Pages):");
+            \WP_CLI::line("");
+            foreach ($routesByType['admin'] as $route) {
+                $this->displayAdminRoute($route);
+            }
+            \WP_CLI::line("");
+        }
+        
+        // Display AJAX Routes
+        if (!empty($routesByType['ajax'])) {
+            \WP_CLI::line("AJAX Routes (AJAX Handlers):");
+            \WP_CLI::line("");
+            foreach ($routesByType['ajax'] as $route) {
+                $this->displayAjaxRoute($route);
+            }
+            \WP_CLI::line("");
+        }
+        
+        // Summary
+        $totalRoutes = count($routes);
+        $apiCount = count($routesByType['api']);
+        $webCount = count($routesByType['web']);
+        $adminCount = count($routesByType['admin']);
+        $ajaxCount = count($routesByType['ajax']);
+        
+        \WP_CLI::line("Summary:");
+        \WP_CLI::line("  Total Routes: {$totalRoutes}");
+        \WP_CLI::line("  API Routes: {$apiCount}");
+        \WP_CLI::line("  Web Routes: {$webCount}");
+        \WP_CLI::line("  Admin Routes: {$adminCount}");
+        \WP_CLI::line("  AJAX Routes: {$ajaxCount}");
+    }
+    
+    /**
+     * Display an API route
+     */
+    private function displayApiRoute($route)
+    {
+        $methods = $route->getMethods();
+        $namespace = $route->getNamespace() ?: 'wp/v2';
+        $endpoint = $route->getEndpoint();
+        $callback = $this->getCallbackString($route);
+        
+        foreach ($methods as $method) {
+            $path = "/wp-json/{$namespace}/{$endpoint}";
+            \WP_CLI::line(sprintf("  %-6s %-50s %s", strtoupper($method), $path, $callback));
+        }
+    }
+    
+    /**
+     * Display a Web route
+     */
+    private function displayWebRoute($route)
+    {
+        $endpoint = $route->getEndpoint();
+        $callback = $this->getCallbackString($route);
+        $path = "/{$endpoint}";
+        
+        \WP_CLI::line(sprintf("  %-6s %-50s %s", 'GET', $path, $callback));
+    }
+    
+    /**
+     * Display an Admin route
+     */
+    private function displayAdminRoute($route)
+    {
+        $endpoint = $route->getEndpoint();
+        $callback = $this->getCallbackString($route);
+        $path = "/wp-admin/admin.php?page={$endpoint}";
+        
+        \WP_CLI::line(sprintf("  %-6s %-50s %s", 'ADMIN', $path, $callback));
+    }
+    
+    /**
+     * Display an AJAX route
+     */
+    private function displayAjaxRoute($route)
+    {
+        $endpoint = $route->getEndpoint();
+        $callback = $this->getCallbackString($route);
+        $path = "/wp-admin/admin-ajax.php?action={$endpoint}";
+        
+        \WP_CLI::line(sprintf("  %-6s %-50s %s", 'AJAX', $path, $callback));
+    }
+    
+    /**
+     * Get callback string from route
+     */
+    private function getCallbackString($route)
+    {
+        try {
+            $reflection = new \ReflectionClass($route);
+            $callbackProperty = $reflection->getProperty('callback');
+            $callbackProperty->setAccessible(true);
+            $callback = $callbackProperty->getValue($route);
             
-            if (empty($routes)) {
-                \WP_CLI::line("No routes registered.");
-                return;
+            if (is_string($callback)) {
+                return $callback;
             }
             
-            foreach ($routes as $route) {
-                // Handle Route objects properly
-                if (is_object($route) && method_exists($route, 'getMethods')) {
-                    $methods = $route->getMethods();
-                    $namespace = $route->getNamespace();
-                    $endpoint = $route->getEndpoint();
-                    
-                    // Get callback using reflection
-                    try {
-                        $reflection = new \ReflectionClass($route);
-                        $callbackProperty = $reflection->getProperty('callback');
-                        $callbackProperty->setAccessible(true);
-                        $callback = $callbackProperty->getValue($route);
-                        
-                        if (is_string($callback)) {
-                            $callbackStr = $callback;
-                        } else {
-                            $callbackStr = 'Custom Handler';
-                        }
-                    } catch (\Exception $e) {
-                        $callbackStr = 'Handler';
-                    }
-                    
-                    foreach ($methods as $method) {
-                        $path = "/wp-json/{$namespace}/{$endpoint}";
-                        \WP_CLI::line(sprintf("%-6s %-40s %s", strtoupper($method), $path, $callbackStr));
-                    }
-                } else {
-                    // Fallback for array format (legacy support)
-                    $method = strtoupper($route['method'] ?? 'GET');
-                    $path = $route['path'] ?? '';
-                    $callback = $route['callback'] ?? '';
-                    
-                    \WP_CLI::line(sprintf("%-6s %-40s %s", $method, $path, $callback));
+            return 'Custom Handler';
+        } catch (\Exception $e) {
+            return 'Handler';
+        }
+    }
+
+    /**
+     * Flush WordPress rewrite rules for web routes
+     *
+     * ## EXAMPLES
+     *
+     *     wp wproutes route:flush
+     *
+     * @param array $args
+     * @param array $assoc_args
+     */
+    public function flushRoutes($args, $assoc_args)
+    {
+        \WP_CLI::line("Flushing WordPress rewrite rules...");
+        
+        flush_rewrite_rules(true);
+        
+        \WP_CLI::success("Rewrite rules have been flushed successfully.");
+        \WP_CLI::line("Your web routes should now be working properly.");
+        \WP_CLI::line("");
+        \WP_CLI::line("Note: Run this command whenever you add or modify web routes.");
+    }
+
+    /**
+     * Debug web routes and rewrite rules
+     *
+     * ## EXAMPLES
+     *
+     *     wp wproutes route:debug
+     *
+     * @param array $args
+     * @param array $assoc_args
+     */
+    public function debugRoutes($args, $assoc_args)
+    {
+        global $wp_rewrite;
+        
+        \WP_CLI::line("Debugging WordPress Routes...");
+        \WP_CLI::line("");
+        
+        // Ensure routes are loaded
+        if (function_exists('wproutes_auto_load_routes')) {
+            wproutes_auto_load_routes();
+        }
+        
+        // Get web routes
+        $routes = \WordPressRoutes\Routing\RouteManager::getRoutes();
+        $webRoutes = array_filter($routes, function($route) {
+            return $route->getType() === \WordPressRoutes\Routing\Route::TYPE_WEB;
+        });
+        
+        \WP_CLI::line("Web Routes Found: " . count($webRoutes));
+        foreach ($webRoutes as $route) {
+            \WP_CLI::line("  - /" . $route->getEndpoint());
+        }
+        \WP_CLI::line("");
+        
+        // Check rewrite rules
+        \WP_CLI::line("WordPress Rewrite Rules:");
+        $rules = get_option('rewrite_rules');
+        
+        if ($rules) {
+            $routeRules = array_filter($rules, function($redirect) {
+                return strpos($redirect, 'route_handler') !== false;
+            });
+            
+            if (empty($routeRules)) {
+                \WP_CLI::warning("No route_handler rewrite rules found!");
+                \WP_CLI::line("This means web routes aren't being registered properly.");
+                
+                // Show some sample rewrite rules for comparison
+                \WP_CLI::line("");
+                \WP_CLI::line("Sample of existing rewrite rules:");
+                $sampleRules = array_slice($rules, 0, 5, true);
+                foreach ($sampleRules as $pattern => $redirect) {
+                    \WP_CLI::line("  {$pattern} => {$redirect}");
+                }
+                \WP_CLI::line("  ... and " . (count($rules) - 5) . " more rules");
+            } else {
+                \WP_CLI::line("Route rewrite rules found:");
+                foreach ($routeRules as $pattern => $redirect) {
+                    \WP_CLI::line("  {$pattern} => {$redirect}");
                 }
             }
         } else {
-            \WP_CLI::warning("RouteManager class not found. Make sure WordPress Routes is loaded.");
+            \WP_CLI::warning("No rewrite rules found!");
         }
+        
+        // Check debug info if available
+        global $wp_routes_debug;
+        if (!empty($wp_routes_debug['rewrite_rules'])) {
+            \WP_CLI::line("");
+            \WP_CLI::line("Route Registration Debug Info:");
+            foreach ($wp_routes_debug['rewrite_rules'] as $rule) {
+                \WP_CLI::line("  Endpoint: /{$rule['endpoint']}");
+                \WP_CLI::line("  Regex: {$rule['regex']}");
+                \WP_CLI::line("  Redirect: {$rule['redirect']}");
+                \WP_CLI::line("  ---");
+            }
+        }
+        
+        \WP_CLI::line("");
+        \WP_CLI::line("Recommendations:");
+        \WP_CLI::line("1. Run: wp wproutes route:flush --allow-root");
+        \WP_CLI::line("2. Check if routes.php is being loaded");
+        \WP_CLI::line("3. Verify WordPress permalink structure is not 'Plain'");
     }
 }

@@ -2,7 +2,7 @@
 
 WordPress Routes provides a powerful, Laravel-inspired routing system that integrates seamlessly with WordPress REST API.
 
-## ⭐ Modern Routes File Structure
+## Modern Routes File Structure
 
 The modern way to organize routes is using a dedicated `routes.php` file that's automatically loaded.
 

@@ -103,10 +103,10 @@ if (
 // Load the autoloader
 require_once WPROUTES_SRC_DIR . "/Autoloader.php";
 
-// Register autoloader
+// Register autoloader first
 \WordPressRoutes\Routing\Autoloader::register();
 
-// Load core components
+// Then load core components explicitly 
 \WordPressRoutes\Routing\Autoloader::loadCore();
 
 // Register controller autoloader
@@ -129,24 +129,29 @@ if (!defined("WPROUTES_NO_AUTO_INIT")) {
 // Auto-load routes.php based on WPROUTES_MODE
 // You can disable this by defining WPROUTES_NO_AUTO_ROUTES before including bootstrap
 if (!defined("WPROUTES_NO_AUTO_ROUTES")) {
+    // IMPORTANT: Load routes on 'init' for web routes to work properly
+    // Web routes need to be registered before WordPress processes the request
     add_action(
-        "rest_api_init",
+        "init",
         function () {
             wproutes_auto_load_routes();
         },
-        1, // Early priority to load routes before they're registered
+        5, // Early priority to load routes before WordPress processes requests
     );
 
-    // Also load in CLI context
-    if (defined("WP_CLI") && WP_CLI) {
-        add_action(
-            "init",
-            function () {
+    // Also load on rest_api_init for API routes
+    add_action(
+        "rest_api_init",
+        function () {
+            // Only load if not already loaded
+            static $loaded = false;
+            if (!$loaded) {
                 wproutes_auto_load_routes();
-            },
-            1,
-        );
-    }
+                $loaded = true;
+            }
+        },
+        1,
+    );
 }
 
 /**
@@ -223,6 +228,10 @@ function wproutes_auto_load_routes()
     // Load the first found routes file
     foreach ($routes_files as $routes_file) {
         if (file_exists($routes_file)) {
+            // Ensure all core classes are loaded before requiring routes
+            if (!class_exists('\WordPressRoutes\Routing\Route')) {
+                \WordPressRoutes\Routing\Autoloader::loadCore();
+            }
             require_once $routes_file;
             $loaded = true;
             break;
