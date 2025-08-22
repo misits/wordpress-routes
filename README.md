@@ -31,7 +31,7 @@ WordPress Routes automatically loads your routes! Just create a `routes.php` fil
 // Simply create: /wp-content/themes/your-theme/routes.php
 <?php
 route_resource('posts', 'PostController');
-RouteManager::get('health', function($request) {
+Route::get('health', function($request) {
     return ['status' => 'ok'];
 });
 ```
@@ -167,18 +167,18 @@ Route::ajax('public_data', function($request) {
 
 ```php
 // Require authentication
-RouteManager::get('profile', function($request) {
+Route::get('profile', function($request) {
     return $request->user();
 })->middleware('auth');
 
 // Rate limiting
-RouteManager::post('contact', function($request) {
+Route::post('contact', function($request) {
     // Send email logic
     return ['sent' => true];
 })->middleware(['rate_limit:10,60']); // 10 requests per minute
 
 // Custom middleware
-RouteManager::get('admin/users', function($request) {
+Route::get('admin/users', function($request) {
     return get_users();
 })->middleware(['auth', 'capability:manage_options']);
 ```
@@ -187,13 +187,13 @@ RouteManager::get('admin/users', function($request) {
 
 ```php
 // Group routes with shared middleware and namespace
-RouteManager::group([
+Route::group([
     'namespace' => 'myapp/v1',
     'middleware' => ['auth']
 ], function() {
-    RouteManager::get('dashboard', 'DashboardController@index');
-    RouteManager::get('settings', 'SettingsController@index');
-    RouteManager::post('settings', 'SettingsController@update');
+    Route::get('dashboard', 'DashboardController@index');
+    Route::get('settings', 'SettingsController@index');
+    Route::post('settings', 'SettingsController@update');
 });
 ```
 
@@ -201,10 +201,10 @@ RouteManager::group([
 
 ```php
 // Automatically creates index, show, store, update, destroy routes
-RouteManager::resource('posts', 'PostController');
+Route::resource('posts', 'PostController');
 
 // Only specific actions
-RouteManager::resource('comments', 'CommentController', [
+Route::resource('comments', 'CommentController', [
     'only' => ['index', 'show', 'store']
 ]);
 ```
@@ -380,7 +380,7 @@ The `RouteRequest` object provides convenient methods to access request data:
 ```php
 use WordPressRoutes\Routing\RouteRequest;
 
-RouteManager::post('example', function(RouteRequest $request) {
+Route::post('example', function(RouteRequest $request) {
     // Get input data
     $name = $request->input('name');
     $email = $request->input('email', 'default@example.com');
@@ -466,7 +466,7 @@ class CustomMiddleware implements MiddlewareInterface
 MiddlewareRegistry::register('custom', CustomMiddleware::class);
 
 // Use in routes
-RouteManager::get('protected', $handler)->middleware('custom');
+Route::get('protected', $handler)->middleware('custom');
 ```
 
 ## Controller Classes
@@ -532,7 +532,7 @@ Perfect companion to WordPress ORM for database operations:
 ```php
 use WordpressORM\Models\Post;
 
-RouteManager::get('posts', function(RouteRequest $request) {
+Route::get('posts', function(RouteRequest $request) {
     $posts = Post::where('post_status', 'publish')
         ->where('post_type', 'post')
         ->orderBy('post_date', 'desc')
@@ -542,7 +542,7 @@ RouteManager::get('posts', function(RouteRequest $request) {
     return $posts;
 })->middleware('rate_limit:100,60');
 
-RouteManager::post('posts', function(RouteRequest $request) {
+Route::post('posts', function(RouteRequest $request) {
     $validation = $request->validate([
         'title' => 'required|max:255',
         'content' => 'required',
@@ -570,14 +570,14 @@ RouteManager::post('posts', function(RouteRequest $request) {
 
 ```php
 // Set your app's API namespace
-RouteManager::setNamespace('myapp/v1');
+Route::setNamespace('myapp/v1');
 ```
 
 ### Global Middleware
 
 ```php
 // Apply middleware to all routes
-RouteManager::middleware(['cors', 'rate_limit:1000,60']);
+Route::middleware(['cors', 'rate_limit:1000,60']);
 ```
 
 ### Custom Middleware Registry
@@ -595,7 +595,7 @@ MiddlewareRegistry::registerMany([
 
 ```php
 // Generate URLs for your API endpoints
-$url = RouteManager::url('user_profile', ['id' => 123]);
+$url = Route::url('user_profile', ['id' => 123]);
 // Returns: https://yoursite.com/wp-json/myapp/v1/users/123
 
 // In JavaScript (frontend)
@@ -623,7 +623,7 @@ const apiUrl = wpApiSettings.root + 'myapp/v1/users';
 ## Error Handling
 
 ```php
-RouteManager::post('sensitive', function(RouteRequest $request) {
+Route::post('sensitive', function(RouteRequest $request) {
     try {
         // Check authentication and permissions
         if (!$request->isAuthenticated()) {
@@ -662,26 +662,26 @@ curl -X POST "https://yoursite.com/wp-json/myapp/v1/users" \
 
 ```php
 // Set namespace
-RouteManager::setNamespace('myapp/v1');
+Route::setNamespace('myapp/v1');
 
 // Public routes
-RouteManager::get('users', 'UserController@index');
-RouteManager::get('users/(?P<id>[\d]+)', 'UserController@show');
+Route::get('users', 'UserController@index');
+Route::get('users/(?P<id>[\d]+)', 'UserController@show');
 
 // Protected routes
-RouteManager::group(['middleware' => 'auth'], function() {
-    RouteManager::get('profile', 'UserController@profile');
-    RouteManager::put('profile', 'UserController@updateProfile');
-    RouteManager::post('avatar', 'UserController@uploadAvatar');
+Route::group(['middleware' => 'auth'], function() {
+    Route::get('profile', 'UserController@profile');
+    Route::put('profile', 'UserController@updateProfile');
+    Route::post('avatar', 'UserController@uploadAvatar');
 });
 
 // Admin only routes
-RouteManager::group([
+Route::group([
     'middleware' => ['auth', 'capability:manage_users'],
     'prefix' => 'admin'
 ], function() {
-    RouteManager::resource('users', 'Admin\UserController');
-    RouteManager::post('users/(?P<id>[\d]+)/ban', 'Admin\UserController@ban');
+    Route::resource('users', 'Admin\UserController');
+    Route::post('users/(?P<id>[\d]+)/ban', 'Admin\UserController@ban');
 });
 ```
 

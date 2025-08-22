@@ -18,7 +18,7 @@ WordPress Routes includes a browser-based testing interface for quick endpoint v
 
 ```php
 // Your endpoint
-RouteManager::get('test-endpoint', function(RouteRequest $request) {
+Route::get('test-endpoint', function(RouteRequest $request) {
     return ['message' => 'Hello from API', 'time' => current_time('mysql')];
 });
 
@@ -76,7 +76,7 @@ wp wproutes route:list
 
 # Test a specific endpoint
 wp eval "
-RouteManager::get('test', function(\$r) { return ['test' => true]; });
+Route::get('test', function(\$r) { return ['test' => true]; });
 \$response = rest_do_request('/wp-json/myapp/v1/test');
 print_r(\$response->get_data());
 "
@@ -418,7 +418,7 @@ define('WP_DEBUG', true);
 define('WP_DEBUG_LOG', true);
 
 // Test with debug info
-RouteManager::get('debug', function(RouteRequest $request) {
+Route::get('debug', function(RouteRequest $request) {
     return [
         'debug' => WP_DEBUG,
         'user' => $request->user(),
@@ -432,11 +432,11 @@ RouteManager::get('debug', function(RouteRequest $request) {
 
 ```php
 if (WP_DEBUG) {
-    RouteManager::get('debug/routes', function() {
-        return RouteManager::getRegisteredRoutes();
+    Route::get('debug/routes', function() {
+        return Route::getRegisteredRoutes();
     })->middleware('capability:manage_options');
     
-    RouteManager::get('debug/middleware', function() {
+    Route::get('debug/middleware', function() {
         return MiddlewareRegistry::getRegistered();
     })->middleware('capability:manage_options');
 }

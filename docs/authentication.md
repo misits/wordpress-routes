@@ -90,10 +90,10 @@ class ApiKeyMiddleware implements MiddlewareInterface
 ### Protecting Individual Routes
 
 ```php
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
 // Require authentication for single route
-RouteManager::get('profile', function($request) {
+Route::get('profile', function($request) {
     $user = $request->user();
     return [
         'id' => $user->ID,
@@ -107,15 +107,15 @@ RouteManager::get('profile', function($request) {
 
 ```php
 // All routes in group require authentication
-RouteManager::group(['middleware' => 'auth'], function() {
-    RouteManager::get('profile', 'UserController@profile');
-    RouteManager::put('profile', 'UserController@updateProfile');
-    RouteManager::post('avatar', 'UserController@uploadAvatar');
+Route::group(['middleware' => 'auth'], function() {
+    Route::get('profile', 'UserController@profile');
+    Route::put('profile', 'UserController@updateProfile');
+    Route::post('avatar', 'UserController@uploadAvatar');
     
     // Nested group with additional requirements
-    RouteManager::group(['middleware' => 'capability:manage_options'], function() {
-        RouteManager::get('admin/dashboard', 'AdminController@dashboard');
-        RouteManager::get('admin/users', 'AdminController@users');
+    Route::group(['middleware' => 'capability:manage_options'], function() {
+        Route::get('admin/dashboard', 'AdminController@dashboard');
+        Route::get('admin/users', 'AdminController@users');
     });
 });
 ```
@@ -237,14 +237,14 @@ curl -X GET "https://yoursite.com/wp-json/myapp/v1/profile" \
 
 ```php
 // Public endpoints (no auth required)
-RouteManager::get('products', 'ProductController@index');
-RouteManager::get('products/{id}', 'ProductController@show');
+Route::get('products', 'ProductController@index');
+Route::get('products/{id}', 'ProductController@show');
 
 // Private endpoints (auth required)
-RouteManager::group(['middleware' => 'auth'], function() {
-    RouteManager::post('products', 'ProductController@store');
-    RouteManager::put('products/{id}', 'ProductController@update');
-    RouteManager::delete('products/{id}', 'ProductController@destroy');
+Route::group(['middleware' => 'auth'], function() {
+    Route::post('products', 'ProductController@store');
+    Route::put('products/{id}', 'ProductController@update');
+    Route::delete('products/{id}', 'ProductController@destroy');
 });
 ```
 
@@ -252,20 +252,20 @@ RouteManager::group(['middleware' => 'auth'], function() {
 
 ```php
 // Different access levels
-RouteManager::group(['middleware' => 'auth'], function() {
+Route::group(['middleware' => 'auth'], function() {
     // All authenticated users
-    RouteManager::get('dashboard', 'DashboardController@index');
+    Route::get('dashboard', 'DashboardController@index');
     
     // Editors and above
-    RouteManager::group(['middleware' => 'capability:edit_posts'], function() {
-        RouteManager::resource('posts', 'PostController');
+    Route::group(['middleware' => 'capability:edit_posts'], function() {
+        Route::resource('posts', 'PostController');
     });
     
     // Administrators only
-    RouteManager::group(['middleware' => 'capability:manage_options'], function() {
-        RouteManager::resource('users', 'UserController');
-        RouteManager::get('settings', 'SettingsController@index');
-        RouteManager::put('settings', 'SettingsController@update');
+    Route::group(['middleware' => 'capability:manage_options'], function() {
+        Route::resource('users', 'UserController');
+        Route::get('settings', 'SettingsController@index');
+        Route::put('settings', 'SettingsController@update');
     });
 });
 ```
@@ -274,13 +274,13 @@ RouteManager::group(['middleware' => 'auth'], function() {
 
 ```php
 // V1 API - Basic auth
-RouteManager::group(['namespace' => 'api/v1', 'middleware' => 'auth'], function() {
-    RouteManager::resource('orders', 'V1\OrderController');
+Route::group(['namespace' => 'api/v1', 'middleware' => 'auth'], function() {
+    Route::resource('orders', 'V1\OrderController');
 });
 
 // V2 API - Token auth
-RouteManager::group(['namespace' => 'api/v2', 'middleware' => 'token_auth'], function() {
-    RouteManager::resource('orders', 'V2\OrderController');
+Route::group(['namespace' => 'api/v2', 'middleware' => 'token_auth'], function() {
+    Route::resource('orders', 'V2\OrderController');
 });
 ```
 
@@ -299,7 +299,7 @@ if (!is_ssl() && !WP_DEBUG) {
 
 ```php
 // Combine auth with rate limiting
-RouteManager::post('api/action', 'ApiController@action')
+Route::post('api/action', 'ApiController@action')
     ->middleware(['auth', 'rate_limit:60,1']); // 60 requests per minute
 ```
 
@@ -363,7 +363,7 @@ public function deleteResource(RouteRequest $request)
 ```php
 // Add debug endpoint (development only)
 if (WP_DEBUG) {
-    RouteManager::get('debug/auth', function($request) {
+    Route::get('debug/auth', function($request) {
         return [
             'is_authenticated' => $request->isAuthenticated(),
             'user_id' => get_current_user_id(),

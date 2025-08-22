@@ -133,18 +133,18 @@ public function getContent(RouteRequest $request)
 
 ```php
 // Single middleware
-RouteManager::get('admin/users', 'AdminController@users')
+Route::get('admin/users', 'AdminController@users')
     ->middleware('auth');
 
 // Multiple middleware layers
-RouteManager::delete('posts/{id}', 'PostController@destroy')
+Route::delete('posts/{id}', 'PostController@destroy')
     ->middleware(['auth', 'capability:delete_posts', 'rate_limit:10,1']);
 
 // Group protection
-RouteManager::group(['middleware' => ['auth', 'capability:manage_options']], function() {
+Route::group(['middleware' => ['auth', 'capability:manage_options']], function() {
     // All routes in this group require authentication and admin capability
-    RouteManager::resource('settings', 'SettingsController');
-    RouteManager::post('cache/clear', 'CacheController@clear');
+    Route::resource('settings', 'SettingsController');
+    Route::post('cache/clear', 'CacheController@clear');
 });
 ```
 
@@ -179,14 +179,14 @@ Prevent abuse with rate limiting middleware:
 
 ```php
 // Basic rate limiting
-RouteManager::post('contact', 'ContactController@send')
+Route::post('contact', 'ContactController@send')
     ->middleware('rate_limit:5,60'); // 5 requests per 60 minutes
 
 // Different limits for different endpoints
-RouteManager::get('search', 'SearchController@search')
+Route::get('search', 'SearchController@search')
     ->middleware('rate_limit:30,1'); // 30 per minute
 
-RouteManager::post('upload', 'UploadController@store')
+Route::post('upload', 'UploadController@store')
     ->middleware(['auth', 'rate_limit:10,60']); // 10 per hour for authenticated users
 
 // Custom rate limiting
@@ -553,12 +553,12 @@ return array_map(function($user) {
 
 ```php
 // ❌ BAD: No rate limiting on expensive operation
-RouteManager::get('search', function($request) {
+Route::get('search', function($request) {
     return perform_expensive_search($request->query('q'));
 });
 
 // ✅ GOOD: Add rate limiting
-RouteManager::get('search', function($request) {
+Route::get('search', function($request) {
     return perform_expensive_search($request->query('q'));
 })->middleware('rate_limit:10,1');
 ```

@@ -21,10 +21,10 @@ Create a `routes.php` file in your theme or plugin root:
 
 defined("ABSPATH") or exit();
 
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
 // Set API namespace for all routes
-RouteManager::setNamespace('wp/v2');
+Route::setNamespace('wp/v2');
 
 /*
 |--------------------------------------------------------------------------
@@ -34,7 +34,7 @@ RouteManager::setNamespace('wp/v2');
 */
 
 // Simple endpoint
-RouteManager::get('health', function($request) {
+Route::get('health', function($request) {
     return ['status' => 'ok', 'timestamp' => current_time('mysql')];
 });
 
@@ -44,7 +44,7 @@ route_resource('posts', 'PostController', [
 ]);
 
 // Search endpoint
-RouteManager::get('search', function($request) {
+Route::get('search', function($request) {
     $query = $request->query('q', '');
     
     if (empty($query)) {
@@ -69,15 +69,15 @@ RouteManager::get('search', function($request) {
 | These routes require user authentication
 */
 
-RouteManager::group(['middleware' => 'auth'], function() {
+Route::group(['middleware' => 'auth'], function() {
     // User's own posts - full CRUD
     route_resource('my/posts', 'PostController', [
         'only' => ['store', 'update', 'destroy']
     ]);
     
     // Profile management
-    RouteManager::get('profile', 'UserController@profile');
-    RouteManager::put('profile', 'UserController@updateProfile');
+    Route::get('profile', 'UserController@profile');
+    Route::put('profile', 'UserController@updateProfile');
 });
 
 /*
@@ -87,7 +87,7 @@ RouteManager::group(['middleware' => 'auth'], function() {
 | These routes require admin privileges
 */
 
-RouteManager::group([
+Route::group([
     'middleware' => ['auth', 'capability:manage_options'],
     'prefix' => 'admin'
 ], function() {
@@ -96,8 +96,8 @@ RouteManager::group([
     route_resource('users', 'UserController');
     
     // System management
-    RouteManager::get('stats', 'AdminController@stats');
-    RouteManager::post('cache/clear', 'AdminController@clearCache');
+    Route::get('stats', 'AdminController@stats');
+    Route::post('cache/clear', 'AdminController@clearCache');
 });
 
 /*
@@ -107,7 +107,7 @@ RouteManager::group([
 */
 
 // V2 API with enhanced features
-RouteManager::group(['namespace' => 'myapp/v2'], function() {
+Route::group(['namespace' => 'myapp/v2'], function() {
     route_resource('posts', 'V2\\PostController');
 });
 
@@ -119,8 +119,8 @@ RouteManager::group(['namespace' => 'myapp/v2'], function() {
 */
 
 if (defined('WP_DEBUG') && WP_DEBUG) {
-    RouteManager::get('debug/routes', function($request) {
-        $routes = RouteManager::getRoutes();
+    Route::get('debug/routes', function($request) {
+        $routes = Route::getRoutes();
         return [
             'total_routes' => count($routes),
             'routes' => array_map(function($route) {
@@ -163,18 +163,18 @@ The `routes.php` file should be placed in:
 ### Defining Routes
 
 ```php
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
 add_action('rest_api_init', function() {
     // Set API namespace
-    RouteManager::setNamespace('myapp/v1');
+    Route::setNamespace('myapp/v1');
     
     // Basic routes
-    RouteManager::get('products', 'ProductController@index');
-    RouteManager::post('products', 'ProductController@store');
-    RouteManager::get('products/{id}', 'ProductController@show');
-    RouteManager::put('products/{id}', 'ProductController@update');
-    RouteManager::delete('products/{id}', 'ProductController@destroy');
+    Route::get('products', 'ProductController@index');
+    Route::post('products', 'ProductController@store');
+    Route::get('products/{id}', 'ProductController@show');
+    Route::put('products/{id}', 'ProductController@update');
+    Route::delete('products/{id}', 'ProductController@destroy');
 });
 ```
 
@@ -182,42 +182,42 @@ add_action('rest_api_init', function() {
 
 ```php
 // HTTP GET
-RouteManager::get('users', 'UserController@index');
+Route::get('users', 'UserController@index');
 
 // HTTP POST
-RouteManager::post('users', 'UserController@store');
+Route::post('users', 'UserController@store');
 
 // HTTP PUT
-RouteManager::put('users/{id}', 'UserController@update');
+Route::put('users/{id}', 'UserController@update');
 
 // HTTP PATCH
-RouteManager::patch('users/{id}', 'UserController@partialUpdate');
+Route::patch('users/{id}', 'UserController@partialUpdate');
 
 // HTTP DELETE
-RouteManager::delete('users/{id}', 'UserController@destroy');
+Route::delete('users/{id}', 'UserController@destroy');
 
 // Multiple HTTP methods
-RouteManager::match(['GET', 'POST'], 'search', 'SearchController@handle');
+Route::match(['GET', 'POST'], 'search', 'SearchController@handle');
 
 // Any HTTP method
-RouteManager::any('webhook', 'WebhookController@handle');
+Route::any('webhook', 'WebhookController@handle');
 ```
 
 ### Route Parameters
 
 ```php
 // Required parameters
-RouteManager::get('users/{id}', 'UserController@show');
-RouteManager::get('posts/{post}/comments/{comment}', 'CommentController@show');
+Route::get('users/{id}', 'UserController@show');
+Route::get('posts/{post}/comments/{comment}', 'CommentController@show');
 
 // Optional parameters
-RouteManager::get('products/{category?}', 'ProductController@index');
+Route::get('products/{category?}', 'ProductController@index');
 
 // Parameter constraints
-RouteManager::get('users/{id}', 'UserController@show')
+Route::get('users/{id}', 'UserController@show')
     ->where('id', '[0-9]+'); // Only numeric IDs
 
-RouteManager::get('posts/{slug}', 'PostController@show')
+Route::get('posts/{slug}', 'PostController@show')
     ->where('slug', '[a-z-]+'); // Only lowercase letters and dashes
 ```
 
@@ -227,10 +227,10 @@ RouteManager::get('posts/{slug}', 'PostController@show')
 
 ```php
 // Name routes for URL generation
-RouteManager::get('products', 'ProductController@index')
+Route::get('products', 'ProductController@index')
     ->name('products.index');
 
-RouteManager::get('products/{id}', 'ProductController@show')
+Route::get('products/{id}', 'ProductController@show')
     ->name('products.show');
 
 // Generate URLs
@@ -247,7 +247,7 @@ $url = route_url('products.show', ['id' => 123]);
 
 ```php
 // Creates all CRUD routes
-RouteManager::resource('products', 'ProductController');
+Route::resource('products', 'ProductController');
 
 // Equivalent to:
 // GET    /products         -> index
@@ -261,11 +261,11 @@ RouteManager::resource('products', 'ProductController');
 
 ```php
 // Only specific methods
-RouteManager::resource('products', 'ProductController')
+Route::resource('products', 'ProductController')
     ->only(['index', 'show']);
 
 // Exclude specific methods
-RouteManager::resource('products', 'ProductController')
+Route::resource('products', 'ProductController')
     ->except(['destroy']);
 ```
 
@@ -273,7 +273,7 @@ RouteManager::resource('products', 'ProductController')
 
 ```php
 // Nested resources
-RouteManager::resource('posts.comments', 'CommentController');
+Route::resource('posts.comments', 'CommentController');
 
 // Creates routes like:
 // GET    /posts/{post}/comments
@@ -289,9 +289,9 @@ RouteManager::resource('posts.comments', 'CommentController');
 
 ```php
 // Group routes with common prefix
-RouteManager::group(['prefix' => 'admin'], function() {
-    RouteManager::get('users', 'AdminController@users');
-    RouteManager::get('settings', 'AdminController@settings');
+Route::group(['prefix' => 'admin'], function() {
+    Route::get('users', 'AdminController@users');
+    Route::get('settings', 'AdminController@settings');
 });
 
 // Creates:
@@ -303,10 +303,10 @@ RouteManager::group(['prefix' => 'admin'], function() {
 
 ```php
 // Apply middleware to all routes in group
-RouteManager::group(['middleware' => ['auth']], function() {
-    RouteManager::get('profile', 'ProfileController@show');
-    RouteManager::put('profile', 'ProfileController@update');
-    RouteManager::delete('account', 'AccountController@destroy');
+Route::group(['middleware' => ['auth']], function() {
+    Route::get('profile', 'ProfileController@show');
+    Route::put('profile', 'ProfileController@update');
+    Route::delete('account', 'AccountController@destroy');
 });
 ```
 
@@ -314,8 +314,8 @@ RouteManager::group(['middleware' => ['auth']], function() {
 
 ```php
 // Different namespace for group
-RouteManager::group(['namespace' => 'admin/v1'], function() {
-    RouteManager::get('dashboard', 'DashboardController@index');
+Route::group(['namespace' => 'admin/v1'], function() {
+    Route::get('dashboard', 'DashboardController@index');
 });
 
 // Creates: /wp-json/admin/v1/dashboard
@@ -325,14 +325,14 @@ RouteManager::group(['namespace' => 'admin/v1'], function() {
 
 ```php
 // Nested groups
-RouteManager::group(['prefix' => 'api', 'middleware' => ['auth']], function() {
+Route::group(['prefix' => 'api', 'middleware' => ['auth']], function() {
     // Public authenticated routes
-    RouteManager::get('profile', 'ProfileController@show');
+    Route::get('profile', 'ProfileController@show');
     
     // Admin-only routes
-    RouteManager::group(['prefix' => 'admin', 'middleware' => ['capability:manage_options']], function() {
-        RouteManager::resource('users', 'AdminController');
-        RouteManager::get('analytics', 'AnalyticsController@index');
+    Route::group(['prefix' => 'admin', 'middleware' => ['capability:manage_options']], function() {
+        Route::resource('users', 'AdminController');
+        Route::get('analytics', 'AnalyticsController@index');
     });
 });
 ```
@@ -342,10 +342,10 @@ RouteManager::group(['prefix' => 'api', 'middleware' => ['auth']], function() {
 ### Single Route Middleware
 
 ```php
-RouteManager::get('protected', 'ProtectedController@index')
+Route::get('protected', 'ProtectedController@index')
     ->middleware(['auth']);
 
-RouteManager::post('upload', 'UploadController@store')
+Route::post('upload', 'UploadController@store')
     ->middleware(['auth', 'rate_limit:10,1']);
 ```
 
@@ -353,10 +353,10 @@ RouteManager::post('upload', 'UploadController@store')
 
 ```php
 // Middleware with parameters
-RouteManager::delete('posts/{id}', 'PostController@destroy')
+Route::delete('posts/{id}', 'PostController@destroy')
     ->middleware(['capability:delete_posts']);
 
-RouteManager::get('admin/data', 'AdminController@data')
+Route::get('admin/data', 'AdminController@data')
     ->middleware(['role:administrator']);
 ```
 
@@ -366,7 +366,7 @@ RouteManager::get('admin/data', 'AdminController@data')
 
 ```php
 // If you're using WordPress ORM
-RouteManager::get('products/{product}', 'ProductController@show');
+Route::get('products/{product}', 'ProductController@show');
 
 // In controller:
 public function show(WP_REST_Request $request, Product $product)
@@ -380,12 +380,12 @@ public function show(WP_REST_Request $request, Product $product)
 
 ```php
 // Custom binding logic
-RouteManager::bind('post', function($value) {
+Route::bind('post', function($value) {
     return get_post($value);
 });
 
 // Use in route
-RouteManager::get('posts/{post}', function($request, $post) {
+Route::get('posts/{post}', function($request, $post) {
     // $post is the resolved WP_Post object
     return ['post' => $post];
 });
@@ -397,20 +397,20 @@ RouteManager::get('posts/{post}', function($request, $post) {
 
 ```php
 // Cache routes for better performance
-RouteManager::enableRouteCache(true);
+Route::enableRouteCache(true);
 
 // Custom cache duration (in seconds)
-RouteManager::setCacheDuration(3600); // 1 hour
+Route::setCacheDuration(3600); // 1 hour
 ```
 
 ### Cache Invalidation
 
 ```php
 // Clear route cache
-RouteManager::clearRouteCache();
+Route::clearRouteCache();
 
 // Rebuild cache
-RouteManager::rebuildRouteCache();
+Route::rebuildRouteCache();
 ```
 
 ## Route Conditions
@@ -420,11 +420,11 @@ RouteManager::rebuildRouteCache();
 ```php
 // Only register routes under certain conditions
 if (current_user_can('manage_options')) {
-    RouteManager::resource('admin/users', 'AdminUserController');
+    Route::resource('admin/users', 'AdminUserController');
 }
 
 if (defined('WP_DEBUG') && WP_DEBUG) {
-    RouteManager::get('debug/info', 'DebugController@info');
+    Route::get('debug/info', 'DebugController@info');
 }
 ```
 
@@ -433,11 +433,11 @@ if (defined('WP_DEBUG') && WP_DEBUG) {
 ```php
 // Different routes for different environments
 if (wp_get_environment_type() === 'development') {
-    RouteManager::get('dev/test', 'TestController@index');
+    Route::get('dev/test', 'TestController@index');
 }
 
 if (wp_get_environment_type() === 'production') {
-    RouteManager::get('status', 'StatusController@health');
+    Route::get('status', 'StatusController@health');
 }
 ```
 
@@ -447,7 +447,7 @@ if (wp_get_environment_type() === 'production') {
 
 ```php
 // Custom 404 handler
-RouteManager::fallback(function() {
+Route::fallback(function() {
     return new WP_REST_Response([
         'success' => false,
         'message' => 'API endpoint not found'
@@ -461,21 +461,21 @@ RouteManager::fallback(function() {
 
 ```php
 // Define reusable route patterns
-RouteManager::macro('apiResource', function($name, $controller) {
-    return RouteManager::resource($name, $controller)
+Route::macro('apiResource', function($name, $controller) {
+    return Route::resource($name, $controller)
         ->middleware(['auth', 'rate_limit:60,1']);
 });
 
 // Use macro
-RouteManager::apiResource('products', 'ProductController');
+Route::apiResource('products', 'ProductController');
 ```
 
 ### Route Subdomain
 
 ```php
 // Routes for specific subdomains (if supported)
-RouteManager::group(['domain' => 'api.example.com'], function() {
-    RouteManager::resource('products', 'ProductController');
+Route::group(['domain' => 'api.example.com'], function() {
+    Route::resource('products', 'ProductController');
 });
 ```
 
@@ -483,9 +483,9 @@ RouteManager::group(['domain' => 'api.example.com'], function() {
 
 ```php
 // Require HTTPS for sensitive routes
-RouteManager::group(['https'], function() {
-    RouteManager::post('payment', 'PaymentController@process');
-    RouteManager::get('admin/sensitive', 'AdminController@sensitive');
+Route::group(['https'], function() {
+    Route::post('payment', 'PaymentController@process');
+    Route::get('admin/sensitive', 'AdminController@sensitive');
 });
 ```
 
@@ -537,7 +537,7 @@ wp rest route list --format=table
 // Debug route matching
 add_action('rest_api_init', function() {
     if (defined('WP_DEBUG') && WP_DEBUG) {
-        RouteManager::debugRoutes(true);
+        Route::debugRoutes(true);
     }
 });
 ```

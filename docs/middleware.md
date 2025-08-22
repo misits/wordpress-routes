@@ -60,14 +60,14 @@ WordPress Routes comes with several built-in middleware:
 ### Authentication Middleware
 
 ```php
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
 // Require authentication
-RouteManager::get('protected', 'ProtectedController@index')
+Route::get('protected', 'ProtectedController@index')
     ->middleware(['auth']);
 
 // Multiple middleware
-RouteManager::get('admin', 'AdminController@index')
+Route::get('admin', 'AdminController@index')
     ->middleware(['auth', 'capability:manage_options']);
 ```
 
@@ -75,11 +75,11 @@ RouteManager::get('admin', 'AdminController@index')
 
 ```php
 // Limit to 60 requests per minute
-RouteManager::get('api/data', 'DataController@index')
+Route::get('api/data', 'DataController@index')
     ->middleware(['rate_limit:60,1']);
 
 // Limit to 1000 requests per hour
-RouteManager::post('api/upload', 'UploadController@store')
+Route::post('api/upload', 'UploadController@store')
     ->middleware(['rate_limit:1000,60']);
 ```
 
@@ -87,11 +87,11 @@ RouteManager::post('api/upload', 'UploadController@store')
 
 ```php
 // Require specific capability
-RouteManager::delete('posts/{id}', 'PostController@destroy')
+Route::delete('posts/{id}', 'PostController@destroy')
     ->middleware(['capability:delete_posts']);
 
 // Multiple capabilities (AND logic)
-RouteManager::get('admin/users', 'AdminController@users')
+Route::get('admin/users', 'AdminController@users')
     ->middleware(['capability:list_users,manage_options']);
 ```
 
@@ -195,14 +195,14 @@ class CorsMiddleware implements MiddlewareInterface
 ### Single Route Middleware
 
 ```php
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
 // Single middleware
-RouteManager::get('products', 'ProductController@index')
+Route::get('products', 'ProductController@index')
     ->middleware(['auth']);
 
 // Multiple middleware
-RouteManager::post('products', 'ProductController@store')
+Route::post('products', 'ProductController@store')
     ->middleware(['auth', 'rate_limit:30,1', 'logging']);
 ```
 
@@ -210,21 +210,21 @@ RouteManager::post('products', 'ProductController@store')
 
 ```php
 // Apply middleware to multiple routes
-RouteManager::group(['middleware' => ['auth']], function() {
-    RouteManager::get('profile', 'ProfileController@show');
-    RouteManager::put('profile', 'ProfileController@update');
-    RouteManager::delete('account', 'AccountController@destroy');
+Route::group(['middleware' => ['auth']], function() {
+    Route::get('profile', 'ProfileController@show');
+    Route::put('profile', 'ProfileController@update');
+    Route::delete('account', 'AccountController@destroy');
 });
 
 // Nested groups with different middleware
-RouteManager::group(['middleware' => ['auth']], function() {
+Route::group(['middleware' => ['auth']], function() {
     // User routes
-    RouteManager::get('profile', 'ProfileController@show');
+    Route::get('profile', 'ProfileController@show');
     
     // Admin routes (additional middleware)
-    RouteManager::group(['middleware' => ['capability:manage_options']], function() {
-        RouteManager::get('users', 'AdminController@users');
-        RouteManager::delete('users/{id}', 'AdminController@deleteUser');
+    Route::group(['middleware' => ['capability:manage_options']], function() {
+        Route::get('users', 'AdminController@users');
+        Route::delete('users/{id}', 'AdminController@deleteUser');
     });
 });
 ```
@@ -237,10 +237,10 @@ Apply middleware to all routes:
 // In your theme/plugin initialization
 add_action('rest_api_init', function() {
     // Register global middleware
-    RouteManager::globalMiddleware(['cors', 'logging']);
+    Route::globalMiddleware(['cors', 'logging']);
     
     // Your routes...
-    RouteManager::resource('products', 'ProductController');
+    Route::resource('products', 'ProductController');
 });
 ```
 

@@ -7,18 +7,18 @@ The CapabilityMiddleware provides fine-grained access control based on WordPress
 ### Simple Capability Check
 
 ```php
-use WordPressRoutes\Routing\RouteManager;
+use WordPressRoutes\Routing\Route;
 
 // Require 'manage_options' capability (admin-only)
-RouteManager::get('admin/settings', 'SettingsController@index')
+Route::get('admin/settings', 'SettingsController@index')
     ->middleware('capability:manage_options');
 
 // Require 'edit_posts' capability 
-RouteManager::get('posts/drafts', 'PostController@drafts')
+Route::get('posts/drafts', 'PostController@drafts')
     ->middleware('capability:edit_posts');
 
 // Require 'upload_files' capability
-RouteManager::post('media/upload', 'MediaController@upload')
+Route::post('media/upload', 'MediaController@upload')
     ->middleware('capability:upload_files');
 ```
 
@@ -26,30 +26,30 @@ RouteManager::post('media/upload', 'MediaController@upload')
 
 ```php
 // User must have both authentication AND the capability
-RouteManager::group(['middleware' => ['auth', 'capability:publish_posts']], function() {
-    RouteManager::post('posts/publish', 'PostController@publish');
-    RouteManager::put('posts/{id}/publish', 'PostController@publishPost');
+Route::group(['middleware' => ['auth', 'capability:publish_posts']], function() {
+    Route::post('posts/publish', 'PostController@publish');
+    Route::put('posts/{id}/publish', 'PostController@publishPost');
 });
 ```
 
 ### Different Capabilities for Different Routes
 
 ```php
-RouteManager::group(['middleware' => 'auth'], function() {
+Route::group(['middleware' => 'auth'], function() {
     // Authors can edit their own posts
-    RouteManager::get('posts/mine', 'PostController@mine')
+    Route::get('posts/mine', 'PostController@mine')
         ->middleware('capability:edit_posts');
     
     // Editors can edit all posts
-    RouteManager::get('posts/all', 'PostController@all')
+    Route::get('posts/all', 'PostController@all')
         ->middleware('capability:edit_others_posts');
     
     // Only admins can delete posts
-    RouteManager::delete('posts/{id}', 'PostController@delete')
+    Route::delete('posts/{id}', 'PostController@delete')
         ->middleware('capability:delete_posts');
     
     // Only administrators can manage users
-    RouteManager::resource('users', 'UserController')
+    Route::resource('users', 'UserController')
         ->middleware('capability:manage_options');
 });
 ```
@@ -118,7 +118,7 @@ RouteManager::group(['middleware' => 'auth'], function() {
 
 ```php
 // Check capability for specific post
-RouteManager::put('posts/{id}', function(RouteRequest $request) {
+Route::put('posts/{id}', function(RouteRequest $request) {
     $postId = $request->param('id');
     
     // Check if user can edit this specific post
@@ -135,7 +135,7 @@ RouteManager::put('posts/{id}', function(RouteRequest $request) {
 });
 
 // Or use middleware with object context
-RouteManager::put('posts/{id}', 'PostController@update')
+Route::put('posts/{id}', 'PostController@update')
     ->middleware(['auth', function($request) {
         $postId = $request->param('id');
         return current_user_can('edit_post', $postId) 
@@ -148,7 +148,7 @@ RouteManager::put('posts/{id}', 'PostController@update')
 
 ```php
 // Check user roles
-RouteManager::get('admin/dashboard', function($request) {
+Route::get('admin/dashboard', function($request) {
     $user = $request->user();
     
     // Check if user has admin or editor role
@@ -168,7 +168,7 @@ RouteManager::get('admin/dashboard', function($request) {
 
 ```php
 // Create custom capability middleware
-RouteManager::get('premium/content', function($request) {
+Route::get('premium/content', function($request) {
     return ['premium' => 'content'];
 })->middleware(['auth', function($request) {
     // Custom logic for premium access
@@ -186,87 +186,87 @@ RouteManager::get('premium/content', function($request) {
 ### Blog Management API
 
 ```php
-RouteManager::setNamespace('blog/v1');
+Route::setNamespace('blog/v1');
 
 // Public endpoints
-RouteManager::get('posts', 'PostController@index');
-RouteManager::get('posts/{id}', 'PostController@show');
+Route::get('posts', 'PostController@index');
+Route::get('posts/{id}', 'PostController@show');
 
 // Author endpoints
-RouteManager::group(['middleware' => ['auth', 'capability:edit_posts']], function() {
-    RouteManager::get('posts/mine', 'PostController@myPosts');
-    RouteManager::post('posts', 'PostController@create');
-    RouteManager::put('posts/{id}', 'PostController@update');
+Route::group(['middleware' => ['auth', 'capability:edit_posts']], function() {
+    Route::get('posts/mine', 'PostController@myPosts');
+    Route::post('posts', 'PostController@create');
+    Route::put('posts/{id}', 'PostController@update');
 });
 
 // Editor endpoints
-RouteManager::group(['middleware' => ['auth', 'capability:edit_others_posts']], function() {
-    RouteManager::get('posts/all', 'PostController@all');
-    RouteManager::put('posts/{id}/status', 'PostController@changeStatus');
+Route::group(['middleware' => ['auth', 'capability:edit_others_posts']], function() {
+    Route::get('posts/all', 'PostController@all');
+    Route::put('posts/{id}/status', 'PostController@changeStatus');
 });
 
 // Admin endpoints
-RouteManager::group(['middleware' => ['auth', 'capability:manage_options']], function() {
-    RouteManager::delete('posts/{id}', 'PostController@delete');
-    RouteManager::get('posts/trash', 'PostController@trash');
-    RouteManager::post('posts/{id}/restore', 'PostController@restore');
+Route::group(['middleware' => ['auth', 'capability:manage_options']], function() {
+    Route::delete('posts/{id}', 'PostController@delete');
+    Route::get('posts/trash', 'PostController@trash');
+    Route::post('posts/{id}/restore', 'PostController@restore');
 });
 ```
 
 ### E-commerce API
 
 ```php
-RouteManager::setNamespace('shop/v1');
+Route::setNamespace('shop/v1');
 
 // Customer endpoints
-RouteManager::group(['middleware' => 'auth'], function() {
-    RouteManager::get('orders/mine', 'OrderController@myOrders');
-    RouteManager::post('orders', 'OrderController@create');
+Route::group(['middleware' => 'auth'], function() {
+    Route::get('orders/mine', 'OrderController@myOrders');
+    Route::post('orders', 'OrderController@create');
 });
 
 // Shop manager endpoints
-RouteManager::group(['middleware' => ['auth', 'capability:edit_products']], function() {
-    RouteManager::resource('products', 'ProductController');
-    RouteManager::get('orders', 'OrderController@index');
-    RouteManager::put('orders/{id}/status', 'OrderController@updateStatus');
+Route::group(['middleware' => ['auth', 'capability:edit_products']], function() {
+    Route::resource('products', 'ProductController');
+    Route::get('orders', 'OrderController@index');
+    Route::put('orders/{id}/status', 'OrderController@updateStatus');
 });
 
 // Administrator endpoints
-RouteManager::group(['middleware' => ['auth', 'capability:manage_woocommerce']], function() {
-    RouteManager::get('reports/sales', 'ReportController@sales');
-    RouteManager::get('settings', 'SettingsController@index');
-    RouteManager::put('settings', 'SettingsController@update');
+Route::group(['middleware' => ['auth', 'capability:manage_woocommerce']], function() {
+    Route::get('reports/sales', 'ReportController@sales');
+    Route::get('settings', 'SettingsController@index');
+    Route::put('settings', 'SettingsController@update');
 });
 ```
 
 ### User Management API
 
 ```php
-RouteManager::setNamespace('users/v1');
+Route::setNamespace('users/v1');
 
 // Self-management (all authenticated users)
-RouteManager::group(['middleware' => 'auth'], function() {
-    RouteManager::get('profile', 'UserController@profile');
-    RouteManager::put('profile', 'UserController@updateProfile');
-    RouteManager::post('avatar', 'UserController@uploadAvatar');
+Route::group(['middleware' => 'auth'], function() {
+    Route::get('profile', 'UserController@profile');
+    Route::put('profile', 'UserController@updateProfile');
+    Route::post('avatar', 'UserController@uploadAvatar');
 });
 
 // User listing (requires list_users capability)
-RouteManager::get('users', 'UserController@index')
+Route::get('users', 'UserController@index')
     ->middleware(['auth', 'capability:list_users']);
 
 // User management (requires edit_users capability)
-RouteManager::group(['middleware' => ['auth', 'capability:edit_users']], function() {
-    RouteManager::get('users/{id}', 'UserController@show');
-    RouteManager::put('users/{id}', 'UserController@update');
-    RouteManager::put('users/{id}/role', 'UserController@changeRole');
+Route::group(['middleware' => ['auth', 'capability:edit_users']], function() {
+    Route::get('users/{id}', 'UserController@show');
+    Route::put('users/{id}', 'UserController@update');
+    Route::put('users/{id}/role', 'UserController@changeRole');
 });
 
 // User creation/deletion (requires create_users/delete_users)
-RouteManager::post('users', 'UserController@create')
+Route::post('users', 'UserController@create')
     ->middleware(['auth', 'capability:create_users']);
 
-RouteManager::delete('users/{id}', 'UserController@delete')
+Route::delete('users/{id}', 'UserController@delete')
     ->middleware(['auth', 'capability:delete_users']);
 ```
 
@@ -329,7 +329,7 @@ $role = get_role('editor');
 $role->add_cap('manage_products');
 
 // Use in routes
-RouteManager::resource('products', 'ProductController')
+Route::resource('products', 'ProductController')
     ->middleware(['auth', 'capability:manage_products']);
 
 // Remove capability
