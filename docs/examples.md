@@ -19,7 +19,7 @@ add_action('rest_api_init', function() {
 ### 2. Create Controller
 
 ```bash
-wp wproutes make:controller PostController --api --resource
+wp borps routes:make-controller PostController --api --resource
 ```
 
 ### 3. Define Routes
@@ -53,26 +53,26 @@ curl -X POST "https://yoursite.com/wp-json/myapp/v1/posts" \
 ### 1. Create Models (using WordPress ORM)
 
 ```bash
-wp wporm make:model Product --migration
-wp wporm make:model Category --migration
-wp wporm make:model Order --migration
+wp borps orm:make-model Product --migration
+wp borps orm:make-model Category --migration
+wp borps orm:make-model Order --migration
 ```
 
 ### 2. Create Controllers
 
 ```bash
-wp wproutes make:controller ProductController --api --resource
-wp wproutes make:controller CategoryController --api --resource
-wp wproutes make:controller OrderController --api --resource
-wp wproutes make:controller CartController --api
+wp borps routes:make-controller ProductController --api --resource
+wp borps routes:make-controller CategoryController --api --resource
+wp borps routes:make-controller OrderController --api --resource
+wp borps routes:make-controller CartController --api
 ```
 
 ### 3. Create Middleware
 
 ```bash
-wp wproutes make:middleware AuthMiddleware
-wp wproutes make:middleware AdminMiddleware
-wp wproutes make:middleware RateLimitMiddleware
+wp borps routes:make-middleware AuthMiddleware
+wp borps routes:make-middleware AdminMiddleware
+wp borps routes:make-middleware RateLimitMiddleware
 ```
 
 ### 4. Define Routes
@@ -81,24 +81,24 @@ wp wproutes make:middleware RateLimitMiddleware
 // functions.php
 add_action('rest_api_init', function() {
     \WordPressRoutes\Routing\Route::setNamespace('shop/v1');
-    
+
     // Public routes
     \WordPressRoutes\Routing\Route::get('products', 'ProductController@index');
     \WordPressRoutes\Routing\Route::get('products/{id}', 'ProductController@show');
     \WordPressRoutes\Routing\Route::get('categories', 'CategoryController@index');
-    
+
     // Authenticated routes
     \WordPressRoutes\Routing\Route::group(['middleware' => ['auth']], function() {
         // Cart operations
         \WordPressRoutes\Routing\Route::get('cart', 'CartController@show');
         \WordPressRoutes\Routing\Route::post('cart/items', 'CartController@addItem');
         \WordPressRoutes\Routing\Route::delete('cart/items/{id}', 'CartController@removeItem');
-        
+
         // Orders
         \WordPressRoutes\Routing\Route::resource('orders', 'OrderController')
             ->only(['index', 'show', 'store']);
     });
-    
+
     // Admin routes
     \WordPressRoutes\Routing\Route::group(['middleware' => ['auth', 'admin']], function() {
         \WordPressRoutes\Routing\Route::resource('products', 'ProductController')
@@ -128,23 +128,23 @@ class ProductController extends BaseController
         $page = $request->get_param('page') ?: 1;
         $per_page = $request->get_param('per_page') ?: 10;
         $category = $request->get_param('category');
-        
+
         // Load Product model
         $Product = model('Product');
-        
+
         $query = $Product::where('status', 'active');
-        
+
         if ($category) {
             $query->where('category_id', $category);
         }
-        
+
         $products = $query->orderBy('created_at', 'desc')
             ->limit($per_page)
             ->offset(($page - 1) * $per_page)
             ->get();
-            
+
         $total = $Product::where('status', 'active')->count();
-        
+
         return $this->success([
             'products' => $products,
             'pagination' => [
@@ -155,21 +155,21 @@ class ProductController extends BaseController
             ]
         ]);
     }
-    
+
     public function show(WP_REST_Request $request)
     {
         $id = $request->get_param('id');
-        
+
         $Product = model('Product');
         $product = $Product::with(['category', 'images'])->find($id);
-        
+
         if (!$product) {
             return $this->error([], 'Product not found', 404);
         }
-        
+
         return $this->success($product);
     }
-    
+
     public function store(WP_REST_Request $request)
     {
         $validation = $this->validate($request, [
@@ -179,28 +179,28 @@ class ProductController extends BaseController
             'description' => 'string',
             'sku' => 'string|max:100'
         ]);
-        
+
         if ($validation !== true) {
             return $this->error($validation, 'Validation failed', 422);
         }
-        
+
         $Product = model('Product');
         $product = $Product::create($request->get_params());
-        
+
         return $this->success($product, 'Product created successfully', 201);
     }
-    
+
     public function update(WP_REST_Request $request)
     {
         $id = $request->get_param('id');
-        
+
         $Product = model('Product');
         $product = $Product::find($id);
-        
+
         if (!$product) {
             return $this->error([], 'Product not found', 404);
         }
-        
+
         $validation = $this->validate($request, [
             'name' => 'string|max:255',
             'price' => 'numeric|min:0',
@@ -208,29 +208,29 @@ class ProductController extends BaseController
             'description' => 'string',
             'sku' => 'string|max:100'
         ]);
-        
+
         if ($validation !== true) {
             return $this->error($validation, 'Validation failed', 422);
         }
-        
+
         $product->update($request->get_params());
-        
+
         return $this->success($product, 'Product updated successfully');
     }
-    
+
     public function destroy(WP_REST_Request $request)
     {
         $id = $request->get_param('id');
-        
+
         $Product = model('Product');
         $product = $Product::find($id);
-        
+
         if (!$product) {
             return $this->error([], 'Product not found', 404);
         }
-        
+
         $product->delete();
-        
+
         return $this->success([], 'Product deleted successfully');
     }
 }
@@ -255,9 +255,9 @@ add_action('init', 'register_blog_post_type');
 ### 2. Create Controllers
 
 ```bash
-wp wproutes make:controller BlogController --api --resource
-wp wproutes make:controller CommentController --api --resource
-wp wproutes make:controller AuthorController --api
+wp borps routes:make-controller BlogController --api --resource
+wp borps routes:make-controller CommentController --api --resource
+wp borps routes:make-controller AuthorController --api
 ```
 
 ### 3. BlogController with WordPress Integration
@@ -277,24 +277,24 @@ class BlogController extends BaseController
         $per_page = $request->get_param('per_page') ?: 10;
         $search = $request->get_param('search');
         $author = $request->get_param('author');
-        
+
         $args = [
             'post_type' => 'blog_post',
             'post_status' => 'publish',
             'posts_per_page' => $per_page,
             'paged' => $page
         ];
-        
+
         if ($search) {
             $args['s'] = sanitize_text_field($search);
         }
-        
+
         if ($author) {
             $args['author'] = intval($author);
         }
-        
+
         $query = new WP_Query($args);
-        
+
         $posts = array_map(function($post) {
             return [
                 'id' => $post->ID,
@@ -310,7 +310,7 @@ class BlogController extends BaseController
                 'permalink' => get_permalink($post->ID)
             ];
         }, $query->posts);
-        
+
         return $this->success([
             'posts' => $posts,
             'pagination' => [
@@ -321,22 +321,22 @@ class BlogController extends BaseController
             ]
         ]);
     }
-    
+
     public function show(WP_REST_Request $request)
     {
         $id = $request->get_param('id');
         $post = get_post($id);
-        
+
         if (!$post || $post->post_type !== 'blog_post' || $post->post_status !== 'publish') {
             return $this->error([], 'Post not found', 404);
         }
-        
+
         // Get comments
         $comments = get_comments([
             'post_id' => $id,
             'status' => 'approve'
         ]);
-        
+
         return $this->success([
             'id' => $post->ID,
             'title' => $post->post_title,
@@ -354,24 +354,24 @@ class BlogController extends BaseController
             'categories' => get_the_category($id)
         ]);
     }
-    
+
     public function store(WP_REST_Request $request)
     {
         if (!current_user_can('publish_posts')) {
             return $this->forbidden('You do not have permission to create posts');
         }
-        
+
         $validation = $this->validate($request, [
             'title' => 'required|string|max:255',
             'content' => 'required|string',
             'excerpt' => 'string',
             'status' => 'in:draft,publish'
         ]);
-        
+
         if ($validation !== true) {
             return $this->error($validation, 'Validation failed', 422);
         }
-        
+
         $post_id = wp_insert_post([
             'post_title' => $request->get_param('title'),
             'post_content' => $request->get_param('content'),
@@ -380,13 +380,13 @@ class BlogController extends BaseController
             'post_type' => 'blog_post',
             'post_author' => get_current_user_id()
         ]);
-        
+
         if (is_wp_error($post_id)) {
             return $this->error([], $post_id->get_error_message(), 500);
         }
-        
+
         $post = get_post($post_id);
-        
+
         return $this->success([
             'id' => $post->ID,
             'title' => $post->post_title,
@@ -414,37 +414,37 @@ class JWTAuthMiddleware implements MiddlewareInterface
     public function handle(WP_REST_Request $request, callable $next)
     {
         $token = $this->getTokenFromRequest($request);
-        
+
         if (!$token) {
             return $this->unauthorizedResponse('Token missing');
         }
-        
+
         $user_id = $this->validateToken($token);
-        
+
         if (!$user_id) {
             return $this->unauthorizedResponse('Invalid token');
         }
-        
+
         wp_set_current_user($user_id);
-        
+
         return $next($request);
     }
-    
+
     private function getTokenFromRequest(WP_REST_Request $request)
     {
         $auth_header = $request->get_header('authorization');
-        
+
         if (!$auth_header) {
             return null;
         }
-        
+
         if (preg_match('/Bearer\s+(.*)$/i', $auth_header, $matches)) {
             return $matches[1];
         }
-        
+
         return null;
     }
-    
+
     private function validateToken($token)
     {
         // Implement JWT validation logic
@@ -456,7 +456,7 @@ class JWTAuthMiddleware implements MiddlewareInterface
             return null;
         }
     }
-    
+
     private function unauthorizedResponse($message)
     {
         return new WP_REST_Response([
@@ -470,7 +470,7 @@ class JWTAuthMiddleware implements MiddlewareInterface
 ### 2. Auth Controller
 
 ```bash
-wp wproutes make:controller AuthController --api
+wp borps routes:make-controller AuthController --api
 ```
 
 ```php
@@ -488,24 +488,24 @@ class AuthController extends BaseController
             'username' => 'required|string',
             'password' => 'required|string'
         ]);
-        
+
         if ($validation !== true) {
             return $this->error($validation, 'Validation failed', 422);
         }
-        
+
         $credentials = [
             'user_login' => $request->get_param('username'),
             'user_password' => $request->get_param('password')
         ];
-        
+
         $user = wp_authenticate($credentials['user_login'], $credentials['user_password']);
-        
+
         if (is_wp_error($user)) {
             return $this->error([], 'Invalid credentials', 401);
         }
-        
+
         $token = $this->generateJWTToken($user);
-        
+
         return $this->success([
             'token' => $token,
             'user' => [
@@ -516,7 +516,7 @@ class AuthController extends BaseController
             ]
         ], 'Login successful');
     }
-    
+
     public function register(WP_REST_Request $request)
     {
         $validation = $this->validate($request, [
@@ -524,32 +524,32 @@ class AuthController extends BaseController
             'email' => 'required|email',
             'password' => 'required|string|min:6'
         ]);
-        
+
         if ($validation !== true) {
             return $this->error($validation, 'Validation failed', 422);
         }
-        
+
         if (username_exists($request->get_param('username'))) {
             return $this->error(['username' => ['Username already exists']], 'Username taken', 422);
         }
-        
+
         if (email_exists($request->get_param('email'))) {
             return $this->error(['email' => ['Email already registered']], 'Email taken', 422);
         }
-        
+
         $user_id = wp_create_user(
             $request->get_param('username'),
             $request->get_param('password'),
             $request->get_param('email')
         );
-        
+
         if (is_wp_error($user_id)) {
             return $this->error([], $user_id->get_error_message(), 500);
         }
-        
+
         $user = get_user_by('id', $user_id);
         $token = $this->generateJWTToken($user);
-        
+
         return $this->success([
             'token' => $token,
             'user' => [
@@ -559,11 +559,11 @@ class AuthController extends BaseController
             ]
         ], 'Registration successful', 201);
     }
-    
+
     public function me(WP_REST_Request $request)
     {
         $user = wp_get_current_user();
-        
+
         return $this->success([
             'id' => $user->ID,
             'username' => $user->user_login,
@@ -572,7 +572,7 @@ class AuthController extends BaseController
             'roles' => $user->roles
         ]);
     }
-    
+
     private function generateJWTToken($user)
     {
         $payload = [
@@ -580,7 +580,7 @@ class AuthController extends BaseController
             'username' => $user->user_login,
             'exp' => time() + (24 * 60 * 60) // 24 hours
         ];
-        
+
         return jwt_encode($payload, JWT_SECRET);
     }
 }
@@ -592,11 +592,11 @@ class AuthController extends BaseController
 // functions.php
 add_action('rest_api_init', function() {
     \WordPressRoutes\Routing\Route::setNamespace('api/v1');
-    
+
     // Public auth routes
     \WordPressRoutes\Routing\Route::post('auth/login', 'AuthController@login');
     \WordPressRoutes\Routing\Route::post('auth/register', 'AuthController@register');
-    
+
     // Protected routes
     \WordPressRoutes\Routing\Route::group(['middleware' => ['jwt_auth']], function() {
         \WordPressRoutes\Routing\Route::get('auth/me', 'AuthController@me');
@@ -616,28 +616,28 @@ add_action('rest_api_init', function() {
 class ProductControllerTest extends WP_UnitTestCase
 {
     private $controller;
-    
+
     public function setUp(): void
     {
         parent::setUp();
         $this->controller = new ProductController();
     }
-    
+
     public function test_index_returns_products()
     {
         // Arrange
         $request = new WP_REST_Request('GET', '/products');
-        
+
         // Act
         $response = $this->controller->index($request);
-        
+
         // Assert
         $this->assertInstanceOf(WP_REST_Response::class, $response);
         $this->assertEquals(200, $response->get_status());
         $data = $response->get_data();
         $this->assertArrayHasKey('products', $data);
     }
-    
+
     public function test_store_creates_product()
     {
         // Arrange
@@ -648,10 +648,10 @@ class ProductControllerTest extends WP_UnitTestCase
             'price' => 99.99,
             'category_id' => 1
         ]);
-        
+
         // Act
         $response = $this->controller->store($request);
-        
+
         // Assert
         $this->assertEquals(201, $response->get_status());
         $data = $response->get_data();

@@ -10,13 +10,13 @@ Generate middleware using WP-CLI:
 
 ```bash
 # Basic middleware
-wp wproutes make:middleware AuthMiddleware
+wp borps routes:make-middleware AuthMiddleware
 
 # Custom namespace
-wp wproutes make:middleware AuthMiddleware --namespace="MyApp\\Middleware"
+wp borps routes:make-middleware AuthMiddleware --namespace="MyApp\\Middleware"
 
 # Custom path
-wp wproutes make:middleware AuthMiddleware --path=/custom/path
+wp borps routes:make-middleware AuthMiddleware --path=/custom/path
 ```
 
 ### Manual Creation
@@ -42,12 +42,12 @@ class AuthMiddleware implements MiddlewareInterface
                 'message' => 'Authentication required'
             ], 401);
         }
-        
+
         // Continue to next middleware or controller
         $response = $next($request);
-        
+
         // Post-processing logic (optional)
-        
+
         return $response;
     }
 }
@@ -107,16 +107,16 @@ class LoggingMiddleware implements MiddlewareInterface
     {
         // Log request
         error_log('API Request: ' . $request->get_route());
-        
+
         $startTime = microtime(true);
-        
+
         // Process request
         $response = $next($request);
-        
+
         // Log response time
         $duration = microtime(true) - $startTime;
         error_log('Response time: ' . round($duration * 1000, 2) . 'ms');
-        
+
         return $response;
     }
 }
@@ -129,30 +129,30 @@ class LoggingMiddleware implements MiddlewareInterface
 class RoleMiddleware implements MiddlewareInterface
 {
     private $requiredRole;
-    
+
     public function __construct($requiredRole = 'subscriber')
     {
         $this->requiredRole = $requiredRole;
     }
-    
+
     public function handle(WP_REST_Request $request, callable $next)
     {
         $user = wp_get_current_user();
-        
+
         if (!$user->exists()) {
             return new WP_REST_Response([
                 'success' => false,
                 'message' => 'Authentication required'
             ], 401);
         }
-        
+
         if (!in_array($this->requiredRole, $user->roles)) {
             return new WP_REST_Response([
                 'success' => false,
                 'message' => 'Insufficient permissions'
             ], 403);
         }
-        
+
         return $next($request);
     }
 }
@@ -175,16 +175,16 @@ class CorsMiddleware implements MiddlewareInterface
                 'Access-Control-Max-Age' => '86400'
             ]);
         }
-        
+
         // Process request
         $response = $next($request);
-        
+
         // Add CORS headers to response
         if ($response instanceof WP_REST_Response) {
             $response->header('Access-Control-Allow-Origin', '*');
             $response->header('Access-Control-Allow-Credentials', 'true');
         }
-        
+
         return $response;
     }
 }
@@ -220,7 +220,7 @@ Route::group(['middleware' => ['auth']], function() {
 Route::group(['middleware' => ['auth']], function() {
     // User routes
     Route::get('profile', 'ProfileController@show');
-    
+
     // Admin routes (additional middleware)
     Route::group(['middleware' => ['capability:manage_options']], function() {
         Route::get('users', 'AdminController@users');
@@ -238,7 +238,7 @@ Apply middleware to all routes:
 add_action('rest_api_init', function() {
     // Register global middleware
     Route::globalMiddleware(['cors', 'logging']);
-    
+
     // Your routes...
     Route::resource('products', 'ProductController');
 });
@@ -286,19 +286,19 @@ class ConditionalMiddleware implements MiddlewareInterface
         if ($this->isAdminRequest($request)) {
             return $this->handleAdminRequest($request, $next);
         }
-        
+
         if ($this->isRouteRequest($request)) {
             return $this->handleRouteRequest($request, $next);
         }
-        
+
         return $next($request);
     }
-    
+
     private function isAdminRequest($request)
     {
         return strpos($request->get_route(), '/admin/') === 0;
     }
-    
+
     private function isRouteRequest($request)
     {
         return strpos($request->get_route(), '/api/') === 0;
@@ -312,39 +312,39 @@ class ConditionalMiddleware implements MiddlewareInterface
 class CacheMiddleware implements MiddlewareInterface
 {
     private $cache;
-    
+
     public function __construct()
     {
         // Initialize cache (Redis, Memcached, etc.)
         $this->cache = wp_cache_init();
     }
-    
+
     public function handle(WP_REST_Request $request, callable $next)
     {
         // Only cache GET requests
         if ($request->get_method() !== 'GET') {
             return $next($request);
         }
-        
+
         $cacheKey = $this->getCacheKey($request);
-        
+
         // Try to get from cache
         $cached = $this->cache->get($cacheKey);
         if ($cached !== false) {
             return new WP_REST_Response($cached);
         }
-        
+
         // Process request
         $response = $next($request);
-        
+
         // Cache the response
         if ($response instanceof WP_REST_Response && $response->get_status() === 200) {
             $this->cache->set($cacheKey, $response->get_data(), 300); // 5 minutes
         }
-        
+
         return $response;
     }
-    
+
     private function getCacheKey($request)
     {
         return 'api_cache_' . md5($request->get_route() . serialize($request->get_params()));
@@ -367,15 +367,15 @@ class AuthMiddlewareTest extends WP_UnitTestCase
         $next = function($request) {
             return new WP_REST_Response(['success' => true]);
         };
-        
+
         // Act
         $middleware = new AuthMiddleware();
         $response = $middleware->handle($request, $next);
-        
+
         // Assert
         $this->assertEquals(200, $response->get_status());
     }
-    
+
     public function test_unauthenticated_user_fails()
     {
         // Arrange
@@ -384,11 +384,11 @@ class AuthMiddlewareTest extends WP_UnitTestCase
         $next = function($request) {
             return new WP_REST_Response(['success' => true]);
         };
-        
+
         // Act
         $middleware = new AuthMiddleware();
         $response = $middleware->handle($request, $next);
-        
+
         // Assert
         $this->assertEquals(401, $response->get_status());
     }
@@ -400,8 +400,8 @@ class AuthMiddlewareTest extends WP_UnitTestCase
 List all discovered middleware:
 
 ```bash
-wp wproutes middleware:list
-wp wproutes middleware:list --format=json
+wp borps routes:middleware-list
+wp borps routes:middleware-list --format=json
 ```
 
 ## Best Practices

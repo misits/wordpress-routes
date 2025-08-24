@@ -22,19 +22,19 @@ class CommandRegistrar
         require_once __DIR__ . '/HelpCommand.php';
 
         // Register help command
-        \WP_CLI::add_command('wproutes help', HelpCommand::class);
+        \WP_CLI::add_command('borps routes:help', HelpCommand::class);
 
         // Register controller commands
-        \WP_CLI::add_command('wproutes make:controller', ControllerCommand::class);
-        \WP_CLI::add_command('wproutes controller:list', [ControllerCommand::class, 'listControllers']);
+        \WP_CLI::add_command('borps routes:make-controller', ControllerCommand::class);
+        \WP_CLI::add_command('borps routes:controller-list', [ControllerCommand::class, 'listControllers']);
 
         // Register middleware commands
-        \WP_CLI::add_command('wproutes make:middleware', MiddlewareCommand::class);
-        \WP_CLI::add_command('wproutes middleware:list', [MiddlewareCommand::class, 'listMiddleware']);
+        \WP_CLI::add_command('borps routes:make-middleware', MiddlewareCommand::class);
+        \WP_CLI::add_command('borps routes:middleware-list', [MiddlewareCommand::class, 'listMiddleware']);
         
         // Register route commands
-        \WP_CLI::add_command('wproutes route:list', [ControllerCommand::class, 'listRoutes']);
-        \WP_CLI::add_command('wproutes route:flush', [ControllerCommand::class, 'flushRoutes']);
-        \WP_CLI::add_command('wproutes route:debug', [ControllerCommand::class, 'debugRoutes']);
+        \WP_CLI::add_command('borps routes:list', [ControllerCommand::class, 'listRoutes']);
+        \WP_CLI::add_command('borps routes:flush', [ControllerCommand::class, 'flushRoutes']);
+        \WP_CLI::add_command('borps routes:debug', [ControllerCommand::class, 'debugRoutes']);
     }
 }

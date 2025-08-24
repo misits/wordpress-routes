@@ -26,8 +26,8 @@ class MiddlewareCommand extends \WP_CLI_Command
      *
      * ## EXAMPLES
      *
-     *     wp wproutes make:middleware AuthMiddleware
-     *     wp wproutes make:middleware CustomAuthMiddleware --namespace="MyApp\\Middleware"
+     *     wp borps routes:make-middleware AuthMiddleware
+     *     wp borps routes:make-middleware CustomAuthMiddleware --namespace="MyApp\\Middleware"
      *
      * @param array $args
      * @param array $assoc_args
@@ -173,8 +173,8 @@ class {$name} implements MiddlewareInterface
      *
      * ## EXAMPLES
      *
-     *     wp wproutes middleware:list
-     *     wp wproutes middleware:list --format=json
+     *     wp borps routes:middleware-list
+     *     wp borps routes:middleware-list --format=json
      *
      * @param array $args
      * @param array $assoc_args

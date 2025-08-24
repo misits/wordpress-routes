@@ -29,7 +29,7 @@ define("WPROUTES_MODE", "theme");
 require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
 ```
 
-### 3. Create Your Routes File 
+### 3. Create Your Routes File
 
 Create a `routes.php` file in your theme root:
 
@@ -54,8 +54,8 @@ WordPress Routes will automatically use these directories:
 
 ```
 /wp-content/themes/your-theme/
-├── routes.php             #  Auto-loaded routes 
-├── controllers/           # Your API controllers  
+├── routes.php             #  Auto-loaded routes
+├── controllers/           # Your API controllers
 ├── middleware/           # Your custom middleware
 └── api/
     ├── routes.php        # Alternative routes location
@@ -148,10 +148,10 @@ Use WP-CLI to verify the installation:
 
 ```bash
 # Check if CLI commands are available
-wp wproutes help
+wp borps routes:help
 
 # List available commands
-wp help wproutes
+wp help borps
 
 # Check version
 wp eval "echo wproutes_version();"
@@ -168,7 +168,7 @@ wp eval "echo wproutes_version();"
 
 ### Commands Not Found
 
-If `wp wproutes` commands are not found:
+If `wp borps routes` commands are not found:
 
 1. Ensure WordPress Routes is properly loaded
 2. Check that WP-CLI can access your WordPress installation
@@ -180,7 +180,7 @@ If you get permission errors:
 
 ```bash
 # Use --allow-root if running as root
-wp wproutes make:controller TestController --allow-root
+wp borps routes:make-controller TestController --allow-root
 
 # Or fix file permissions
 chown -R www-data:www-data /path/to/wordpress

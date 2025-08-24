@@ -15,7 +15,7 @@ class HelpCommand extends \WP_CLI_Command
      *
      * ## EXAMPLES
      *
-     *     wp wproutes help
+     *     wp borps routes:help
      *
      * @param array $args
      * @param array $assoc_args
@@ -37,46 +37,80 @@ class HelpCommand extends \WP_CLI_Command
 
         \WP_CLI::line("");
         \WP_CLI::line("USAGE");
-        \WP_CLI::line("  wp wproutes <command> [<args>]");
+        \WP_CLI::line("  wp borps routes:<command> [<args>]");
 
         \WP_CLI::line("");
-        
+
         \WP_CLI::line("CONTROLLER COMMANDS:");
-        \WP_CLI::line("  wp wproutes make:controller <name>     Create a new controller");
-        \WP_CLI::line("    --path=<path>                        Path to controllers directory");
-        \WP_CLI::line("    --api                                Generate API controller");
-        \WP_CLI::line("    --resource                           Generate resource controller");
-        \WP_CLI::line("    --namespace=<namespace>              Specify namespace for controller");
-        \WP_CLI::line("  wp wproutes controller:list            List all controllers");
-        \WP_CLI::line("    --format=<format>                    Render output format (table, csv, json, yaml)");
+        \WP_CLI::line(
+            "  wp borps routes:make-controller <name>     Create a new controller",
+        );
+        \WP_CLI::line(
+            "    --path=<path>                        Path to controllers directory",
+        );
+        \WP_CLI::line(
+            "    --api                                Generate API controller",
+        );
+        \WP_CLI::line(
+            "    --resource                           Generate resource controller",
+        );
+        \WP_CLI::line(
+            "    --namespace=<namespace>              Specify namespace for controller",
+        );
+        \WP_CLI::line(
+            "  wp borps routes:controller-list            List all controllers",
+        );
+        \WP_CLI::line(
+            "    --format=<format>                    Render output format (table, csv, json, yaml)",
+        );
         \WP_CLI::line("");
-        
+
         \WP_CLI::line("MIDDLEWARE COMMANDS:");
-        \WP_CLI::line("  wp wproutes make:middleware <name>     Create a new middleware");
-        \WP_CLI::line("    --path=<path>                        Path to middleware directory");
-        \WP_CLI::line("    --namespace=<namespace>              Specify namespace for middleware");
-        \WP_CLI::line("  wp wproutes middleware:list            List all middleware");
-        \WP_CLI::line("    --format=<format>                    Render output format (table, csv, json, yaml)");
+        \WP_CLI::line(
+            "  wp borps routes:make-middleware <name>     Create a new middleware",
+        );
+        \WP_CLI::line(
+            "    --path=<path>                        Path to middleware directory",
+        );
+        \WP_CLI::line(
+            "    --namespace=<namespace>              Specify namespace for middleware",
+        );
+        \WP_CLI::line(
+            "  wp borps routes:middleware-list            List all middleware",
+        );
+        \WP_CLI::line(
+            "    --format=<format>                    Render output format (table, csv, json, yaml)",
+        );
         \WP_CLI::line("");
-        
+
         \WP_CLI::line("ROUTE COMMANDS:");
-        \WP_CLI::line("  wp wproutes route:list                 List all registered routes");
+        \WP_CLI::line(
+            "  wp borps routes:list                 List all registered routes",
+        );
         \WP_CLI::line("");
-        
+
         \WP_CLI::line("EXAMPLES:");
-        \WP_CLI::line("  wp wproutes make:controller ProductController --api");
-        \WP_CLI::line("  wp wproutes make:controller UserController --resource");
-        \WP_CLI::line("  wp wproutes make:middleware AuthMiddleware");
+        \WP_CLI::line(
+            "  wp borps routes:make-controller ProductController --api",
+        );
+        \WP_CLI::line(
+            "  wp borps routes:make-controller UserController --resource",
+        );
+        \WP_CLI::line("  wp borps routes:make-middleware AuthMiddleware");
         \WP_CLI::line("");
-        
+
         \WP_CLI::line("MODE CONFIGURATION:");
         \WP_CLI::line("Set WPROUTES_MODE in your functions.php or plugin:");
-        \WP_CLI::line("  define('WPROUTES_MODE', 'theme');   // For theme development");
-        \WP_CLI::line("  define('WPROUTES_MODE', 'plugin');  // For plugin development");
+        \WP_CLI::line(
+            "  define('WPROUTES_MODE', 'theme');   // For theme development",
+        );
+        \WP_CLI::line(
+            "  define('WPROUTES_MODE', 'plugin');  // For plugin development",
+        );
         \WP_CLI::line("");
-        
+
         \WP_CLI::line("VERSION:");
-        if (function_exists('wproutes_version')) {
+        if (function_exists("wproutes_version")) {
             \WP_CLI::line("  WordPress Routes: " . wproutes_version());
         }
         \WP_CLI::line("");

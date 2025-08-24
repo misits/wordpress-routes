@@ -14,7 +14,7 @@ Create a `routes.php` file in your theme or plugin root:
 <?php
 /**
  * API Routes Definition
- * 
+ *
  * Define all your API routes here using Laravel-style syntax
  * This file is automatically loaded by wp-routes based on WPROUTES_MODE
  */
@@ -46,11 +46,11 @@ route_resource('posts', 'PostController', [
 // Search endpoint
 Route::get('search', function($request) {
     $query = $request->query('q', '');
-    
+
     if (empty($query)) {
         return new WP_Error('missing_query', 'Search query required', ['status' => 400]);
     }
-    
+
     // Search implementation
     $posts = get_posts([
         's' => sanitize_text_field($query),
@@ -58,13 +58,13 @@ Route::get('search', function($request) {
         'post_status' => 'publish',
         'numberposts' => 10
     ]);
-    
+
     return ['query' => $query, 'results' => count($posts)];
 });
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes  
+| Authenticated Routes
 |--------------------------------------------------------------------------
 | These routes require user authentication
 */
@@ -74,7 +74,7 @@ Route::group(['middleware' => 'auth'], function() {
     route_resource('my/posts', 'PostController', [
         'only' => ['store', 'update', 'destroy']
     ]);
-    
+
     // Profile management
     Route::get('profile', 'UserController@profile');
     Route::put('profile', 'UserController@updateProfile');
@@ -94,7 +94,7 @@ Route::group([
     // Admin-only full access
     route_resource('posts', 'PostController');
     route_resource('users', 'UserController');
-    
+
     // System management
     Route::get('stats', 'AdminController@stats');
     Route::post('cache/clear', 'AdminController@clearCache');
@@ -145,17 +145,17 @@ The `routes.php` file should be placed in:
 - `{theme}/api/routes.php`
 
 **Plugin Mode:**
-- `{plugin}/routes.php` (Recommended)  
+- `{plugin}/routes.php` (Recommended)
 - `{plugin}/routes/api.php`
 - `{plugin}/src/routes.php`
 
 ### Benefits of Routes File Approach
 
-✅ **Laravel-style** - Familiar route organization  
-✅ **Separation of concerns** - Routes separate from theme logic  
-✅ **Easy maintenance** - All routes in one place  
-✅ **Version control friendly** - Easy to track route changes  
-✅ **Automatic loading** - Zero configuration required  
+✅ **Laravel-style** - Familiar route organization
+✅ **Separation of concerns** - Routes separate from theme logic
+✅ **Easy maintenance** - All routes in one place
+✅ **Version control friendly** - Easy to track route changes
+✅ **Automatic loading** - Zero configuration required
 ✅ **Organized structure** - Routes grouped by functionality
 
 ## Basic Routing
@@ -168,7 +168,7 @@ use WordPressRoutes\Routing\Route;
 add_action('rest_api_init', function() {
     // Set API namespace
     Route::setNamespace('myapp/v1');
-    
+
     // Basic routes
     Route::get('products', 'ProductController@index');
     Route::post('products', 'ProductController@store');
@@ -234,7 +234,7 @@ Route::get('products/{id}', 'ProductController@show')
     ->name('products.show');
 
 // Generate URLs
-$url = route_url('products.index'); 
+$url = route_url('products.index');
 // Returns: /wp-json/myapp/v1/products
 
 $url = route_url('products.show', ['id' => 123]);
@@ -251,7 +251,7 @@ Route::resource('products', 'ProductController');
 
 // Equivalent to:
 // GET    /products         -> index
-// POST   /products         -> store  
+// POST   /products         -> store
 // GET    /products/{id}    -> show
 // PUT    /products/{id}    -> update
 // DELETE /products/{id}    -> destroy
@@ -328,7 +328,7 @@ Route::group(['namespace' => 'admin/v1'], function() {
 Route::group(['prefix' => 'api', 'middleware' => ['auth']], function() {
     // Public authenticated routes
     Route::get('profile', 'ProfileController@show');
-    
+
     // Admin-only routes
     Route::group(['prefix' => 'admin', 'middleware' => ['capability:manage_options']], function() {
         Route::resource('users', 'AdminController');
@@ -501,19 +501,19 @@ class RouteTest extends WP_UnitTestCase
         // Make request to route
         $request = new WP_REST_Request('GET', '/wp-json/myapp/v1/products');
         $response = rest_do_request($request);
-        
+
         // Assert response
         $this->assertEquals(200, $response->get_status());
         $data = $response->get_data();
         $this->assertIsArray($data);
     }
-    
+
     public function test_protected_route_requires_auth()
     {
         // Test without authentication
         $request = new WP_REST_Request('GET', '/wp-json/myapp/v1/profile');
         $response = rest_do_request($request);
-        
+
         $this->assertEquals(401, $response->get_status());
     }
 }
@@ -525,10 +525,7 @@ class RouteTest extends WP_UnitTestCase
 
 ```bash
 # List all registered routes
-wp wproutes route:list
-
-# Show route details
-wp rest route list --format=table
+wp borps routes:list
 ```
 
 ### Debug Route Resolution

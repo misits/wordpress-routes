@@ -10,22 +10,22 @@ Generate controllers using WP-CLI:
 
 ```bash
 # Basic controller
-wp wproutes make:controller ProductController
+wp borps routes:make-controller ProductController
 
 # API controller (extends BaseController)
-wp wproutes make:controller ProductController --api
+wp borps routes:make-controller ProductController --api
 
 # Resource controller with CRUD methods
-wp wproutes make:controller ProductController --resource
+wp borps routes:make-controller ProductController --resource
 
 # API + Resource controller
-wp wproutes make:controller ProductController --api --resource
+wp borps routes:make-controller ProductController --api --resource
 
 # Nested controller
-wp wproutes make:controller Admin/UserController --api
+wp borps routes:make-controller Admin/UserController --api
 
 # Custom namespace
-wp wproutes make:controller ProductController --namespace="MyApp\\Controllers"
+wp borps routes:make-controller ProductController --namespace="MyApp\\Controllers"
 ```
 
 ### Manual Creation
@@ -45,7 +45,7 @@ class ProductController extends BaseController
     {
         // Your logic here
         $products = []; // Get products
-        
+
         return $this->success($products);
     }
 }
@@ -84,7 +84,7 @@ class ApiController extends BaseController
         $data = ['message' => 'Hello API'];
         return $this->success($data);
     }
-    
+
     public function create(RouteRequest $request)
     {
         // Validate input
@@ -92,11 +92,11 @@ class ApiController extends BaseController
             'name' => 'required|string|max:255',
             'email' => 'required|email'
         ]);
-        
+
         if (is_wp_error($validation)) {
             return $validation;
         }
-        
+
         // Create resource
         return $this->success([], 'Created successfully', 201);
     }
@@ -121,7 +121,7 @@ class ProductController extends BaseController
     {
         // Get all products
         $products = $this->getProducts($request);
-        
+
         return $this->success($products);
     }
 
@@ -136,15 +136,15 @@ class ProductController extends BaseController
             'price' => 'required|numeric|min:0',
             'description' => 'string'
         ];
-        
+
         $validation = $request->validate($rules);
         if (is_wp_error($validation)) {
             return $validation;
         }
-        
+
         // Create product
         $product = $this->createProduct($request->all());
-        
+
         return $this->success($product, 'Product created successfully', 201);
     }
 
@@ -155,11 +155,11 @@ class ProductController extends BaseController
     {
         $id = $request->param('id');
         $product = $this->getProduct($id);
-        
+
         if (!$product) {
             return $this->error([], 'Product not found', 404);
         }
-        
+
         return $this->success($product);
     }
 
@@ -169,28 +169,28 @@ class ProductController extends BaseController
     public function update(RouteRequest $request)
     {
         $id = $request->param('id');
-        
+
         // Check if product exists
         $product = $this->getProduct($id);
         if (!$product) {
             return $this->error([], 'Product not found', 404);
         }
-        
+
         // Validation
         $rules = [
             'name' => 'string|max:255',
             'price' => 'numeric|min:0',
             'description' => 'string'
         ];
-        
+
         $validation = $request->validate($rules);
         if (is_wp_error($validation)) {
             return $validation;
         }
-        
+
         // Update product
         $product = $this->updateProduct($id, $request->all());
-        
+
         return $this->success($product, 'Product updated successfully');
     }
 
@@ -200,16 +200,16 @@ class ProductController extends BaseController
     public function destroy(RouteRequest $request)
     {
         $id = $request->param('id');
-        
+
         // Check if product exists
         $product = $this->getProduct($id);
         if (!$product) {
             return $this->error([], 'Product not found', 404);
         }
-        
+
         // Delete product
         $this->deleteProduct($id);
-        
+
         return $this->success([], 'Product deleted successfully');
     }
 
@@ -308,8 +308,8 @@ Organize controllers in subdirectories:
 
 ```bash
 # Create nested controller
-wp wproutes make:controller Admin/UserController --api
-wp wproutes make:controller Api/V2/ProductController --resource
+wp borps routes:make-controller Admin/UserController --api
+wp borps routes:make-controller Api/V2/ProductController --resource
 ```
 
 Directory structure:
@@ -329,8 +329,8 @@ controllers/
 List all discovered controllers:
 
 ```bash
-wp wproutes controller:list
-wp wproutes controller:list --format=json
+wp borps routes:controller-list
+wp borps routes:controller-list --format=json
 ```
 
 ## Integration with WordPress
@@ -348,10 +348,10 @@ class PostController extends BaseController
             'post_status' => 'publish',
             'numberposts' => 10
         ]);
-        
+
         return $this->success($posts);
     }
-    
+
     public function store(RouteRequest $request)
     {
         // Create WordPress post
@@ -360,11 +360,11 @@ class PostController extends BaseController
             'post_content' => $request->input('content'),
             'post_status' => 'publish'
         ]);
-        
+
         if (is_wp_error($post_id)) {
             return $this->error([], $post_id->get_error_message(), 400);
         }
-        
+
         return $this->success(['id' => $post_id], 'Post created', 201);
     }
 }
@@ -381,13 +381,13 @@ class ProductController extends BaseController
     {
         // Load the Product model
         $Product = model('Product');
-        
+
         // Query using ORM
         $products = $Product::where('active', true)
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
-        
+
         return $this->success($products);
     }
 }

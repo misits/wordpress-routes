@@ -11,25 +11,25 @@ Generate a new controller class.
 
 ```bash
 # Basic controller
-wp wproutes make:controller ProductController
+wp borps routes:make-controller ProductController
 
 # API controller (extends BaseController)
-wp wproutes make:controller ProductController --api
+wp borps routes:make-controller ProductController --api
 
 # Resource controller with CRUD methods
-wp wproutes make:controller ProductController --resource
+wp borps routes:make-controller ProductController --resource
 
 # API + Resource controller (recommended for APIs)
-wp wproutes make:controller ProductController --api --resource
+wp borps routes:make-controller ProductController --api --resource
 
 # Nested controller
-wp wproutes make:controller Admin/UserController --api
+wp borps routes:make-controller Admin/UserController --api
 
 # Custom namespace
-wp wproutes make:controller ProductController --namespace="MyApp\\Controllers"
+wp borps routes:make-controller ProductController --namespace="MyApp\\Controllers"
 
 # Custom path
-wp wproutes make:controller ProductController --path=/custom/controllers
+wp borps routes:make-controller ProductController --path=/custom/controllers
 ```
 
 **Options:**
@@ -43,13 +43,13 @@ List all discovered controllers.
 
 ```bash
 # List all controllers
-wp wproutes controller:list
+wp borps routes:controller-list
 
 # Output as JSON
-wp wproutes controller:list --format=json
+wp borps routes:controller-list --format=json
 
 # Output as CSV
-wp wproutes controller:list --format=csv
+wp borps routes:controller-list --format=csv
 ```
 
 ### Middleware Commands
@@ -59,13 +59,13 @@ Generate a new middleware class.
 
 ```bash
 # Basic middleware
-wp wproutes make:middleware AuthMiddleware
+wp borps routes:make-middleware AuthMiddleware
 
 # Custom namespace
-wp wproutes make:middleware CustomAuth --namespace="MyApp\\Middleware"
+wp borps routes:make-middleware CustomAuth --namespace="MyApp\\Middleware"
 
 # Custom path
-wp wproutes make:middleware AuthMiddleware --path=/custom/middleware
+wp borps routes:make-middleware AuthMiddleware --path=/custom/middleware
 ```
 
 **Options:**
@@ -77,10 +77,10 @@ List all discovered middleware.
 
 ```bash
 # List all middleware
-wp wproutes middleware:list
+wp borps routes:middleware-list
 
 # Output as JSON
-wp wproutes middleware:list --format=json
+wp borps routes:middleware-list --format=json
 ```
 
 ### Route Commands
@@ -90,7 +90,7 @@ List all registered routes.
 
 ```bash
 # List all registered routes
-wp wproutes route:list
+wp borps routes:list
 ```
 
 ### Help Command
@@ -100,7 +100,7 @@ Show WordPress Routes CLI help.
 
 ```bash
 # Show help
-wp wproutes help
+wp borps routes:help
 ```
 
 ## Command Examples
@@ -109,7 +109,7 @@ wp wproutes help
 
 #### Basic API Controller
 ```bash
-wp wproutes make:controller ProductController --api
+wp borps routes:make-controller ProductController --api
 ```
 
 Creates:
@@ -134,7 +134,7 @@ class ProductController extends BaseController
 
 #### Resource Controller
 ```bash
-wp wproutes make:controller ProductController --api --resource
+wp borps routes:make-controller ProductController --api --resource
 ```
 
 Creates a full CRUD controller with methods:
@@ -146,7 +146,7 @@ Creates a full CRUD controller with methods:
 
 #### Nested Controller
 ```bash
-wp wproutes make:controller Admin/UserController --api --resource
+wp borps routes:make-controller Admin/UserController --api --resource
 ```
 
 Creates: `controllers/Admin/UserController.php`
@@ -155,7 +155,7 @@ Creates: `controllers/Admin/UserController.php`
 
 #### Authentication Middleware
 ```bash
-wp wproutes make:middleware AuthMiddleware
+wp borps routes:make-middleware AuthMiddleware
 ```
 
 Creates:
@@ -177,15 +177,15 @@ class AuthMiddleware implements MiddlewareInterface
                 'message' => 'Middleware condition failed'
             ], 403);
         }
-        
+
         // Continue to next middleware or controller
         $response = $next($request);
-        
+
         // Post-processing logic
-        
+
         return $response;
     }
-    
+
     protected function checkCondition(WP_REST_Request $request): bool
     {
         // Implement your middleware logic
@@ -201,15 +201,15 @@ Commands automatically detect your mode and create files in the appropriate dire
 ### Theme Mode
 ```bash
 # With WPROUTES_MODE = "theme"
-wp wproutes make:controller ProductController --api
+wp borps routes:make-controller ProductController --api
 ```
 
 Creates: `/wp-content/themes/your-theme/controllers/ProductController.php`
 
 ### Plugin Mode
 ```bash
-# With WPROUTES_MODE = "plugin"  
-wp wproutes make:controller ProductController --api
+# With WPROUTES_MODE = "plugin"
+wp borps routes:make-controller ProductController --api
 ```
 
 Creates: `/wp-content/plugins/your-plugin/src/Controllers/ProductController.php`
@@ -219,17 +219,17 @@ Creates: `/wp-content/plugins/your-plugin/src/Controllers/ProductController.php`
 ### Create Multiple Controllers
 ```bash
 # Create multiple controllers at once
-wp wproutes make:controller ProductController --api --resource
-wp wproutes make:controller CategoryController --api --resource
-wp wproutes make:controller UserController --api --resource
-wp wproutes make:controller Admin/SettingsController --api
+wp borps routes:make-controller ProductController --api --resource
+wp borps routes:make-controller CategoryController --api --resource
+wp borps routes:make-controller UserController --api --resource
+wp borps routes:make-controller Admin/SettingsController --api
 ```
 
 ### Create Controller with Middleware
 ```bash
 # Create controller and related middleware
-wp wproutes make:controller ProductController --api --resource
-wp wproutes make:middleware ProductMiddleware
+wp borps routes:make-controller ProductController --api --resource
+wp borps routes:make-middleware ProductMiddleware
 ```
 
 ## Integration with Existing Workflow
@@ -237,21 +237,20 @@ wp wproutes make:middleware ProductMiddleware
 ### WordPress Development Workflow
 ```bash
 # 1. Create models (if using WordPress ORM)
-wp wporm make:model Product --migration
+wp borps orm:make-model Product --migration
 
 # 2. Create controller
-wp wproutes make:controller ProductController --api --resource
+wp borps routes:make-controller ProductController --api --resource
 
 # 3. Create custom middleware if needed
-wp wproutes make:middleware ProductAuthMiddleware
+wp borps routes:make-middleware ProductAuthMiddleware
 
 # 4. Run migrations
-wp wporm migrate
+wp borps orm:migrate
 
 # 5. List everything to verify
-wp wporm model:list
-wp wproutes controller:list
-wp wproutes middleware:list
+wp borps routes:controller-list
+wp borps routes:middleware-list
 ```
 
 ### CI/CD Integration
@@ -260,19 +259,19 @@ wp wproutes middleware:list
 # deploy.sh - Example deployment script
 
 # Generate missing controllers
-wp wproutes make:controller ApiController --api --resource --allow-root
+wp borps routes:make-controller ApiController --api --resource --allow-root
 
 # Verify all components
-wp wproutes controller:list --allow-root
-wp wproutes middleware:list --allow-root
-wp wproutes route:list --allow-root
+wp borps routes:controller-list --allow-root
+wp borps routes:middleware-list --allow-root
+wp borps routes:list --allow-root
 ```
 
 ## Command Output
 
 ### Successful Creation
 ```bash
-$ wp wproutes make:controller ProductController --api --resource
+$ wp borps routes:make-controller ProductController --api --resource
 
 Success: Controller ProductController created successfully.
 Controller created in: /wp-content/themes/wporm-demo/controllers
@@ -280,7 +279,7 @@ Controller created in: /wp-content/themes/wporm-demo/controllers
 
 ### Listing Controllers
 ```bash
-$ wp wproutes controller:list
+$ wp borps routes:controller-list
 
 +-------------------+----------------------------------------------------------+--------------------------------------------+
 | controller        | file                                                     | path                                       |
@@ -294,7 +293,7 @@ Summary: 2 controllers found across 1 directories
 
 ### Listing Routes
 ```bash
-$ wp wproutes route:list
+$ wp borps routes:list
 
 Registered Routes:
 
@@ -311,21 +310,21 @@ DELETE /products/(?P<id>\d+)         ProductController@destroy
 
 #### Controller Already Exists
 ```bash
-$ wp wproutes make:controller ProductController --api
+$ wp borps routes:make-controller ProductController --api
 
 Error: Controller creation failed: Controller ProductController already exists!
 ```
 
 #### Invalid Path
 ```bash
-$ wp wproutes make:controller ProductController --path=/invalid/path
+$ wp borps routes:make-controller ProductController --path=/invalid/path
 
 Error: Controller creation failed: Directory /invalid/path is not writable
 ```
 
 #### Missing Mode Configuration
 ```bash
-$ wp wproutes make:controller ProductController
+$ wp borps routes:make-controller ProductController
 
 Warning: WPROUTES_MODE not defined, using theme mode by default
 Success: Controller ProductController created successfully.
@@ -338,24 +337,24 @@ You can extend the CLI to use custom templates:
 
 ```bash
 # This would use a custom template if implemented
-wp wproutes make:controller ApiController --template=custom-api
+wp borps routes:make-controller ApiController --template=custom-api
 ```
 
 ### Namespace Organization
 ```bash
 # Organize by feature
-wp wproutes make:controller Auth/LoginController --namespace="MyApp\\Auth"
-wp wproutes make:controller Auth/RegisterController --namespace="MyApp\\Auth"
+wp borps routes:make-controller Auth/LoginController --namespace="MyApp\\Auth"
+wp borps routes:make-controller Auth/RegisterController --namespace="MyApp\\Auth"
 
 # Organize by version
-wp wproutes make:controller V1/ProductController --namespace="MyApp\\V1"
-wp wproutes make:controller V2/ProductController --namespace="MyApp\\V2"
+wp borps routes:make-controller V1/ProductController --namespace="MyApp\\V1"
+wp borps routes:make-controller V2/ProductController --namespace="MyApp\\V2"
 ```
 
 ### Integration with Other Tools
 ```bash
 # Use with other WordPress tools
-wp wproutes make:controller ProductController --api --resource
+wp borps routes:make-controller ProductController --api --resource
 wp scaffold plugin-tests my-plugin
 wp package install wp-cli/doctor-command
 wp doctor check
