@@ -10,13 +10,13 @@ Generate middleware using WP-CLI:
 
 ```bash
 # Basic middleware
-wp borps routes:make-middleware AuthMiddleware
+wp routes:make-middleware AuthMiddleware
 
 # Custom namespace
-wp borps routes:make-middleware AuthMiddleware --namespace="MyApp\\Middleware"
+wp routes:make-middleware AuthMiddleware --namespace="MyApp\\Middleware"
 
 # Custom path
-wp borps routes:make-middleware AuthMiddleware --path=/custom/path
+wp routes:make-middleware AuthMiddleware --path=/custom/path
 ```
 
 ### Manual Creation
@@ -400,8 +400,8 @@ class AuthMiddlewareTest extends WP_UnitTestCase
 List all discovered middleware:
 
 ```bash
-wp borps routes:middleware-list
-wp borps routes:middleware-list --format=json
+wp routes:middleware-list
+wp routes:middleware-list --format=json
 ```
 
 ## Best Practices

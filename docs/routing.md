@@ -525,7 +525,7 @@ class RouteTest extends WP_UnitTestCase
 
 ```bash
 # List all registered routes
-wp borps routes:list
+wp routes:list
 ```
 
 ### Debug Route Resolution

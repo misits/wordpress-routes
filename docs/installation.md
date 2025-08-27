@@ -148,7 +148,7 @@ Use WP-CLI to verify the installation:
 
 ```bash
 # Check if CLI commands are available
-wp borps routes:help
+wp routes:help
 
 # List available commands
 wp help borps
@@ -168,7 +168,7 @@ wp eval "echo wproutes_version();"
 
 ### Commands Not Found
 
-If `wp borps routes` commands are not found:
+If `wp routes` commands are not found:
 
 1. Ensure WordPress Routes is properly loaded
 2. Check that WP-CLI can access your WordPress installation
@@ -180,7 +180,7 @@ If you get permission errors:
 
 ```bash
 # Use --allow-root if running as root
-wp borps routes:make-controller TestController --allow-root
+wp routes:make-controller TestController --allow-root
 
 # Or fix file permissions
 chown -R www-data:www-data /path/to/wordpress

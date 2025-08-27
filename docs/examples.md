@@ -19,7 +19,7 @@ add_action('rest_api_init', function() {
 ### 2. Create Controller
 
 ```bash
-wp borps routes:make-controller PostController --api --resource
+wp routes:make-controller PostController --api --resource
 ```
 
 ### 3. Define Routes
@@ -53,26 +53,26 @@ curl -X POST "https://yoursite.com/wp-json/myapp/v1/posts" \
 ### 1. Create Models (using WordPress ORM)
 
 ```bash
-wp borps orm:make-model Product --migration
-wp borps orm:make-model Category --migration
-wp borps orm:make-model Order --migration
+wp orm:make-model Product --migration
+wp orm:make-model Category --migration
+wp orm:make-model Order --migration
 ```
 
 ### 2. Create Controllers
 
 ```bash
-wp borps routes:make-controller ProductController --api --resource
-wp borps routes:make-controller CategoryController --api --resource
-wp borps routes:make-controller OrderController --api --resource
-wp borps routes:make-controller CartController --api
+wp routes:make-controller ProductController --api --resource
+wp routes:make-controller CategoryController --api --resource
+wp routes:make-controller OrderController --api --resource
+wp routes:make-controller CartController --api
 ```
 
 ### 3. Create Middleware
 
 ```bash
-wp borps routes:make-middleware AuthMiddleware
-wp borps routes:make-middleware AdminMiddleware
-wp borps routes:make-middleware RateLimitMiddleware
+wp routes:make-middleware AuthMiddleware
+wp routes:make-middleware AdminMiddleware
+wp routes:make-middleware RateLimitMiddleware
 ```
 
 ### 4. Define Routes
@@ -255,9 +255,9 @@ add_action('init', 'register_blog_post_type');
 ### 2. Create Controllers
 
 ```bash
-wp borps routes:make-controller BlogController --api --resource
-wp borps routes:make-controller CommentController --api --resource
-wp borps routes:make-controller AuthorController --api
+wp routes:make-controller BlogController --api --resource
+wp routes:make-controller CommentController --api --resource
+wp routes:make-controller AuthorController --api
 ```
 
 ### 3. BlogController with WordPress Integration
@@ -470,7 +470,7 @@ class JWTAuthMiddleware implements MiddlewareInterface
 ### 2. Auth Controller
 
 ```bash
-wp borps routes:make-controller AuthController --api
+wp routes:make-controller AuthController --api
 ```
 
 ```php

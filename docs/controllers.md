@@ -10,22 +10,22 @@ Generate controllers using WP-CLI:
 
 ```bash
 # Basic controller
-wp borps routes:make-controller ProductController
+wp routes:make-controller ProductController
 
 # API controller (extends BaseController)
-wp borps routes:make-controller ProductController --api
+wp routes:make-controller ProductController --api
 
 # Resource controller with CRUD methods
-wp borps routes:make-controller ProductController --resource
+wp routes:make-controller ProductController --resource
 
 # API + Resource controller
-wp borps routes:make-controller ProductController --api --resource
+wp routes:make-controller ProductController --api --resource
 
 # Nested controller
-wp borps routes:make-controller Admin/UserController --api
+wp routes:make-controller Admin/UserController --api
 
 # Custom namespace
-wp borps routes:make-controller ProductController --namespace="MyApp\\Controllers"
+wp routes:make-controller ProductController --namespace="MyApp\\Controllers"
 ```
 
 ### Manual Creation
@@ -308,8 +308,8 @@ Organize controllers in subdirectories:
 
 ```bash
 # Create nested controller
-wp borps routes:make-controller Admin/UserController --api
-wp borps routes:make-controller Api/V2/ProductController --resource
+wp routes:make-controller Admin/UserController --api
+wp routes:make-controller Api/V2/ProductController --resource
 ```
 
 Directory structure:
@@ -329,8 +329,8 @@ controllers/
 List all discovered controllers:
 
 ```bash
-wp borps routes:controller-list
-wp borps routes:controller-list --format=json
+wp routes:controller-list
+wp routes:controller-list --format=json
 ```
 
 ## Integration with WordPress
