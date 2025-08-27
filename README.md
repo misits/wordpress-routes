@@ -19,7 +19,7 @@ Include the WPRoutes library in your WordPress theme or plugin:
 
 ```php
 // In your theme's functions.php or plugin file
-require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
+require_once get_template_directory() . '/vendor/wordpress-routes/bootstrap.php';
 ```
 
 ## Zero-Configuration Setup
@@ -36,7 +36,7 @@ Route::get('health', function($request) {
 });
 ```
 
-### Plugin Mode  
+### Plugin Mode
 ```php
 // Set mode in your plugin:
 define('WPROUTES_MODE', 'plugin');
@@ -50,7 +50,7 @@ route_resource('products', 'ProductController');
 
 **Theme Mode:** Searches in this order:
 - `{child-theme}/routes.php`
-- `{child-theme}/routes/api.php` 
+- `{child-theme}/routes/api.php`
 - `{child-theme}/api/routes.php`
 - `{parent-theme}/routes.php`
 - `{parent-theme}/routes/api.php`
@@ -67,7 +67,7 @@ route_resource('products', 'ProductController');
 ```php
 // To disable automatic route loading
 define('WPROUTES_NO_AUTO_ROUTES', true);
-require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
+require_once get_template_directory() . '/vendor/wordpress-routes/bootstrap.php';
 
 // Then manually load your routes
 require_once get_template_directory() . '/my-custom-routes.php';
@@ -133,7 +133,7 @@ Route::web('portfolio', function($request) {
 ->title('My Portfolio');
 ```
 
-#### 3. Admin Routes  
+#### 3. Admin Routes
 WordPress admin dashboard pages with full template support:
 
 ```php
@@ -269,13 +269,13 @@ $request = $GLOBALS['admin_route_request'] ?? [];
 ?>
 <div class="wrap">
     <h1>Analytics Dashboard</h1>
-    
+
     <div class="dashboard-widgets-wrap">
         <div class="postbox">
             <h2>Total Users</h2>
             <p class="big-number"><?php echo intval($data['total_users']); ?></p>
         </div>
-        
+
         <div class="postbox">
             <h2>Recent Posts</h2>
             <?php foreach ($data['recent_posts'] as $post): ?>
@@ -454,7 +454,7 @@ class CustomMiddleware implements MiddlewareInterface
         // Return null to continue processing
         return null;
     }
-    
+
     private function isValid(RouteRequest $request)
     {
         // Example validation logic
@@ -489,11 +489,11 @@ class UserController extends BaseController
     {
         $id = $request->param('id');
         $user = get_user_by('ID', $id);
-        
+
         if (!$user) {
             return $this->error([], 'User not found', 404);
         }
-        
+
         return $this->success($user);
     }
 
@@ -515,11 +515,11 @@ class UserController extends BaseController
             $request->input('password'),
             $request->input('email')
         );
-        
+
         if (is_wp_error($user_id)) {
             return $this->error([], $user_id->get_error_message(), 400);
         }
-        
+
         return $this->success(['user_id' => $user_id], 'User created successfully', 201);
     }
 }
@@ -629,13 +629,13 @@ Route::post('sensitive', function(RouteRequest $request) {
         if (!$request->isAuthenticated()) {
             return new WP_Error('unauthorized', 'Authentication required', ['status' => 401]);
         }
-        
+
         // Risky operation
         return performOperation($request->all());
     } catch (Exception $e) {
         // Log error internally
         error_log('API Error: ' . $e->getMessage());
-        
+
         return new WP_Error(
             'operation_failed',
             WP_DEBUG ? $e->getMessage() : 'An error occurred',

@@ -10,8 +10,8 @@ Copy the `wp-routes` library to your theme:
 
 ```
 /wp-content/themes/your-theme/
-├── lib/
-│   └── wp-routes/          # Copy entire wp-routes library here
+├── vendor/
+│   └── wordpress-routes/          # Copy entire wordpress-routes library here
 ├── functions.php
 └── ...
 ```
@@ -26,7 +26,7 @@ Add to your `functions.php`:
 define("WPROUTES_MODE", "theme");
 
 // Include the library
-require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
+require_once get_template_directory() . "/vendor/wordpress-routes/bootstrap.php";
 ```
 
 ### 3. Create Your Routes File
@@ -69,12 +69,12 @@ WordPress Routes will automatically use these directories:
 
 ### 1. Copy Library Files
 
-Copy the `wp-routes` library to your plugin:
+Copy the `wordpress-routes` library to your plugin:
 
 ```
 /wp-content/plugins/your-plugin/
-├── lib/
-│   └── wp-routes/          # Copy entire wp-routes library here
+├── vendor/
+│   └── wordpress-routes/          # Copy entire wordpress-routes library here
 ├── your-plugin.php
 └── ...
 ```
@@ -98,7 +98,7 @@ defined('ABSPATH') or exit;
 define("WPROUTES_MODE", "plugin");
 
 // Include the library
-require_once __DIR__ . '/lib/wp-routes/bootstrap.php';
+require_once __DIR__ . '/vendor/wordpress-routes/bootstrap.php';
 ```
 
 ### 3. Directory Structure
