@@ -15,7 +15,7 @@ class HelpCommand extends \WP_CLI_Command
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:help
+     *     wp routes:help
      *
      * @param array $args
      * @param array $assoc_args
@@ -37,13 +37,13 @@ class HelpCommand extends \WP_CLI_Command
 
         \WP_CLI::line("");
         \WP_CLI::line("USAGE");
-        \WP_CLI::line("  wp borps routes:<command> [<args>]");
+        \WP_CLI::line("  wp routes:<command> [<args>]");
 
         \WP_CLI::line("");
 
         \WP_CLI::line("CONTROLLER COMMANDS:");
         \WP_CLI::line(
-            "  wp borps routes:make-controller <name>     Create a new controller",
+            "  wp routes:make-controller <name>     Create a new controller",
         );
         \WP_CLI::line(
             "    --path=<path>                        Path to controllers directory",
@@ -58,7 +58,7 @@ class HelpCommand extends \WP_CLI_Command
             "    --namespace=<namespace>              Specify namespace for controller",
         );
         \WP_CLI::line(
-            "  wp borps routes:controller-list            List all controllers",
+            "  wp routes:controller-list            List all controllers",
         );
         \WP_CLI::line(
             "    --format=<format>                    Render output format (table, csv, json, yaml)",
@@ -67,7 +67,7 @@ class HelpCommand extends \WP_CLI_Command
 
         \WP_CLI::line("MIDDLEWARE COMMANDS:");
         \WP_CLI::line(
-            "  wp borps routes:make-middleware <name>     Create a new middleware",
+            "  wp routes:make-middleware <name>     Create a new middleware",
         );
         \WP_CLI::line(
             "    --path=<path>                        Path to middleware directory",
@@ -76,7 +76,7 @@ class HelpCommand extends \WP_CLI_Command
             "    --namespace=<namespace>              Specify namespace for middleware",
         );
         \WP_CLI::line(
-            "  wp borps routes:middleware-list            List all middleware",
+            "  wp routes:middleware-list            List all middleware",
         );
         \WP_CLI::line(
             "    --format=<format>                    Render output format (table, csv, json, yaml)",
@@ -85,18 +85,14 @@ class HelpCommand extends \WP_CLI_Command
 
         \WP_CLI::line("ROUTE COMMANDS:");
         \WP_CLI::line(
-            "  wp borps routes:list                 List all registered routes",
+            "  wp routes:list                 List all registered routes",
         );
         \WP_CLI::line("");
 
         \WP_CLI::line("EXAMPLES:");
-        \WP_CLI::line(
-            "  wp borps routes:make-controller ProductController --api",
-        );
-        \WP_CLI::line(
-            "  wp borps routes:make-controller UserController --resource",
-        );
-        \WP_CLI::line("  wp borps routes:make-middleware AuthMiddleware");
+        \WP_CLI::line("  wp routes:make-controller ProductController --api");
+        \WP_CLI::line("  wp routes:make-controller UserController --resource");
+        \WP_CLI::line("  wp routes:make-middleware AuthMiddleware");
         \WP_CLI::line("");
 
         \WP_CLI::line("MODE CONFIGURATION:");

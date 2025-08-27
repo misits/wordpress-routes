@@ -26,8 +26,8 @@ class MiddlewareCommand extends \WP_CLI_Command
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:make-middleware AuthMiddleware
-     *     wp borps routes:make-middleware CustomAuthMiddleware --namespace="MyApp\\Middleware"
+     *     wp routes:make-middleware AuthMiddleware
+     *     wp routes:make-middleware CustomAuthMiddleware --namespace="MyApp\\Middleware"
      *
      * @param array $args
      * @param array $assoc_args
@@ -39,15 +39,15 @@ class MiddlewareCommand extends \WP_CLI_Command
         }
 
         $name = $args[0];
-        
+
         // Ensure name ends with 'Middleware'
-        if (!str_ends_with($name, 'Middleware')) {
-            $name .= 'Middleware';
+        if (!str_ends_with($name, "Middleware")) {
+            $name .= "Middleware";
         }
-        
+
         // Default path: use mode-based middleware directory
-        $defaultPath = wproutes_get_default_path('middleware');
-        
+        $defaultPath = wproutes_get_default_path("middleware");
+
         $path = $assoc_args["path"] ?? $defaultPath;
         $namespace = $assoc_args["namespace"] ?? null;
 
@@ -55,7 +55,6 @@ class MiddlewareCommand extends \WP_CLI_Command
             $this->createMiddleware($name, $path, $namespace);
             \WP_CLI::success("Middleware {$name} created successfully.");
             \WP_CLI::line("Middleware created in: {$path}");
-
         } catch (\Exception $e) {
             \WP_CLI::error("Middleware creation failed: " . $e->getMessage());
         }
@@ -70,7 +69,7 @@ class MiddlewareCommand extends \WP_CLI_Command
      */
     protected function createMiddleware($name, $path, $namespace = null)
     {
-        $filename = $path . '/' . $name . '.php';
+        $filename = $path . "/" . $name . ".php";
 
         if (file_exists($filename)) {
             \WP_CLI::error("Middleware {$name} already exists!");
@@ -93,8 +92,8 @@ class MiddlewareCommand extends \WP_CLI_Command
      */
     protected function getMiddlewareTemplate($name, $namespace = null)
     {
-        $namespaceLine = $namespace ? "namespace {$namespace};" : '';
-        
+        $namespaceLine = $namespace ? "namespace {$namespace};" : "";
+
         return "<?php
 {$namespaceLine}
 
@@ -118,7 +117,7 @@ class {$name} implements MiddlewareInterface
     {
         // Pre-processing logic here
         // Example: Authentication, rate limiting, logging, etc.
-        
+
         // Check some condition
         if (!\$this->checkCondition(\$request)) {
             return new WP_REST_Response([
@@ -126,16 +125,16 @@ class {$name} implements MiddlewareInterface
                 'message' => 'Middleware condition failed'
             ], 403);
         }
-        
+
         // Continue to the next middleware or controller
         \$response = \$next(\$request);
-        
+
         // Post-processing logic here
         // Example: Modify response, log results, etc.
-        
+
         return \$response;
     }
-    
+
     /**
      * Check middleware condition
      *
@@ -146,7 +145,7 @@ class {$name} implements MiddlewareInterface
     {
         // Implement your middleware logic here
         // Return true to continue, false to block
-        
+
         return true;
     }
 }
@@ -173,8 +172,8 @@ class {$name} implements MiddlewareInterface
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:middleware-list
-     *     wp borps routes:middleware-list --format=json
+     *     wp routes:middleware-list
+     *     wp routes:middleware-list --format=json
      *
      * @param array $args
      * @param array $assoc_args
@@ -183,24 +182,24 @@ class {$name} implements MiddlewareInterface
     {
         try {
             // Get default middleware path
-            $middlewarePath = wproutes_get_default_path('middleware');
+            $middlewarePath = wproutes_get_default_path("middleware");
             $middlewareFiles = [];
-            
+
             if (is_dir($middlewarePath)) {
-                $files = glob($middlewarePath . '/*.php');
+                $files = glob($middlewarePath . "/*.php");
                 foreach ($files as $file) {
-                    if (strpos(basename($file), 'Middleware') !== false) {
+                    if (strpos(basename($file), "Middleware") !== false) {
                         $middlewareFiles[] = $file;
                     }
                 }
             }
-            
+
             // Also check built-in middleware
-            $builtinPath = WPROUTES_SRC_DIR . '/Middleware';
+            $builtinPath = WPROUTES_SRC_DIR . "/Middleware";
             if (is_dir($builtinPath)) {
-                $builtinFiles = glob($builtinPath . '/*.php');
+                $builtinFiles = glob($builtinPath . "/*.php");
                 foreach ($builtinFiles as $file) {
-                    if (basename($file) !== 'MiddlewareInterface.php') {
+                    if (basename($file) !== "MiddlewareInterface.php") {
                         $middlewareFiles[] = $file;
                     }
                 }
@@ -214,30 +213,42 @@ class {$name} implements MiddlewareInterface
                 return;
             }
 
-            $format = $assoc_args['format'] ?? 'table';
-            
+            $format = $assoc_args["format"] ?? "table";
+
             // Prepare data for display
-            $displayData = array_map(function($middlewareFile) {
-                $fileName = basename($middlewareFile, '.php');
+            $displayData = array_map(function ($middlewareFile) {
+                $fileName = basename($middlewareFile, ".php");
                 $pathDir = dirname($middlewareFile);
-                $type = strpos($pathDir, '/lib/wp-routes/') !== false ? 'Built-in' : 'User';
-                
+                $type =
+                    strpos($pathDir, "/lib/wp-routes/") !== false
+                        ? "Built-in"
+                        : "User";
+
                 return [
-                    'middleware' => $fileName,
-                    'type' => $type,
-                    'file' => $middlewareFile,
-                    'path' => $pathDir
+                    "middleware" => $fileName,
+                    "type" => $type,
+                    "file" => $middlewareFile,
+                    "path" => $pathDir,
                 ];
             }, $middlewareFiles);
 
-            \WP_CLI\Utils\format_items($format, $displayData, ['middleware', 'type', 'file', 'path']);
-            
+            \WP_CLI\Utils\format_items($format, $displayData, [
+                "middleware",
+                "type",
+                "file",
+                "path",
+            ]);
+
             // Summary
             $total = count($middlewareFiles);
-            $pathCount = count(array_unique(array_column($displayData, 'path')));
-            
+            $pathCount = count(
+                array_unique(array_column($displayData, "path")),
+            );
+
             \WP_CLI::line("");
-            \WP_CLI::line("Summary: {$total} middleware found across {$pathCount} directories");
+            \WP_CLI::line(
+                "Summary: {$total} middleware found across {$pathCount} directories",
+            );
         } catch (\Exception $e) {
             \WP_CLI::error("Failed to list middleware: " . $e->getMessage());
         }

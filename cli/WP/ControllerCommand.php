@@ -33,10 +33,10 @@ class ControllerCommand extends \WP_CLI_Command
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:make-controller ProductController
-     *     wp borps routes:make-controller ProductController --api
-     *     wp borps routes:make-controller ProductController --resource
-     *     wp borps routes:make-controller Admin/UserController --namespace="MyApp\\Controllers"
+     *     wp routes:make-controller ProductController
+     *     wp routes:make-controller ProductController --api
+     *     wp routes:make-controller ProductController --resource
+     *     wp routes:make-controller Admin/UserController --namespace="MyApp\\Controllers"
      *
      * @param array $args
      * @param array $assoc_args
@@ -350,8 +350,8 @@ class {$name}{$extendsLine}
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:controller-list
-     *     wp borps routes:controller-list --format=json
+     *     wp routes:controller-list
+     *     wp routes:controller-list --format=json
      *
      * @param array $args
      * @param array $assoc_args
@@ -412,7 +412,7 @@ class {$name}{$extendsLine}
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:list
+     *     wp routes:list
      *
      * @param array $args
      * @param array $assoc_args
@@ -596,7 +596,7 @@ class {$name}{$extendsLine}
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:flush
+     *     wp routes:flush
      *
      * @param array $args
      * @param array $assoc_args
@@ -620,7 +620,7 @@ class {$name}{$extendsLine}
      *
      * ## EXAMPLES
      *
-     *     wp borps routes:debug
+     *     wp routes:debug
      *
      * @param array $args
      * @param array $assoc_args
@@ -700,7 +700,7 @@ class {$name}{$extendsLine}
 
         \WP_CLI::line("");
         \WP_CLI::line("Recommendations:");
-        \WP_CLI::line("1. Run: wp borps routes:route:flush --allow-root");
+        \WP_CLI::line("1. Run: wp routes:route:flush --allow-root");
         \WP_CLI::line("2. Check if routes.php is being loaded");
         \WP_CLI::line("3. Verify WordPress permalink structure is not 'Plain'");
     }
