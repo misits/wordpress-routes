@@ -1,555 +1,271 @@
-# Routing
+# Modern Unified Routing System
 
-WordPress Routes provides a powerful, Laravel-inspired routing system that integrates seamlessly with WordPress REST API.
+WordPress Routes provides a unified routing system that handles **API, Web, Admin, AJAX, and Webhook routes** with consistent Laravel-style syntax and powerful features.
 
-## Modern Routes File Structure
+## Quick Start
 
-The modern way to organize routes is using a dedicated `routes.php` file that's automatically loaded.
+### Organized Routes Structure
 
-### Creating Your Routes File
+The modern routing system uses organized route files in a `routes/` directory:
 
-Create a `routes.php` file in your theme or plugin root:
+```
+your-theme/
+├── routes/
+│   ├── api.php      # REST API endpoints
+│   ├── web.php      # Frontend pages
+│   ├── auth.php     # Protected routes
+│   ├── webhooks.php # External integrations
+│   └── admin.php    # WordPress admin pages
+```
+
+### Basic Route Examples
 
 ```php
 <?php
-/**
- * API Routes Definition
- *
- * Define all your API routes here using Laravel-style syntax
- * This file is automatically loaded by wp-routes based on WPROUTES_MODE
- */
-
-defined("ABSPATH") or exit();
-
 use WordPressRoutes\Routing\Route;
+use WordPressRoutes\Routing\RouteManager;
 
-// Set API namespace for all routes
-Route::setNamespace('wp/v2');
+// API Routes (in routes/api.php)
+RouteManager::setNamespace('myapp/v1');
 
-/*
-|--------------------------------------------------------------------------
-| Public API Routes
-|--------------------------------------------------------------------------
-| These routes are accessible without authentication
-*/
-
-// Simple endpoint
-Route::get('health', function($request) {
-    return ['status' => 'ok', 'timestamp' => current_time('mysql')];
+Route::get('users/{id}', function($request) {
+    return ['user' => get_user_by('id', $request->param('id'))];
 });
 
-// Resource routes (CRUD)
-route_resource('posts', 'PostController', [
-    'only' => ['index', 'show'] // Public read-only
-]);
+// Web Routes (in routes/web.php)
+Route::web('about/{section}', function($request) {
+    $section = $request->param('section');
+    return view('about-' . $section, ['section' => $section]);
+})->title('About Us');
 
-// Search endpoint
-Route::get('search', function($request) {
-    $query = $request->query('q', '');
+// Protected Routes (in routes/auth.php)
+Route::web('dashboard/{tab}', function($request) {
+    $tab = $request->param('tab');
+    return view('dashboard', ['active_tab' => $tab]);
+})->middleware(['auth'])->title('Dashboard');
 
-    if (empty($query)) {
-        return new WP_Error('missing_query', 'Search query required', ['status' => 400]);
+// Webhook Routes (in routes/webhooks.php)
+Route::webhook('github-deploy', function($request) {
+    $payload = $request['json'];
+    // Handle deployment
+    return ['status' => 'deployed'];
+})->signature('your-secret');
+```
+
+## Route Types
+
+### 1. API Routes
+REST API endpoints with automatic parameter extraction:
+```php
+// GET /wp-json/myapp/v1/posts/123/comments/456
+Route::get('posts/{post_id}/comments/{comment_id}', function($request) {
+    return [
+        'post_id' => $request->param('post_id'),
+        'comment_id' => $request->param('comment_id'),
+        'data' => $request->all()
+    ];
+});
+```
+
+### 2. Web Routes
+Frontend pages with template integration:
+```php
+// Visit: /products/electronics/laptop
+Route::web('products/{category}/{slug}', function($request) {
+    $product = get_product($request->param('slug'));
+    return view('product-detail', ['product' => $product]);
+})->title('Product Details');
+```
+
+### 3. Protected Routes
+Authentication and capability-based routes:
+```php
+// Requires user to be logged in
+Route::web('profile/{section}', $callback)->middleware(['auth']);
+
+// Requires admin capabilities
+Route::web('admin/{action}', $callback)->middleware(['capability:manage_options']);
+```
+
+### 4. AJAX Routes
+WordPress AJAX integration:
+```php
+Route::ajax('load_more_posts', function() {
+    $posts = get_posts(['offset' => $_POST['offset']]);
+    wp_send_json_success($posts);
+})->public();
+```
+
+### 5. Webhook Routes
+External service integrations:
+```php
+Route::webhook('stripe/payment', function($request) {
+    $event = $request['json'];
+    handle_payment_event($event);
+    return ['received' => true];
+})->signature(env('STRIPE_WEBHOOK_SECRET'));
+```
+
+## Universal Parameter System
+
+All route types support parameter extraction with the same syntax:
+
+```php
+// URL: /api/users/123/posts/456?status=published
+Route::get('users/{user_id}/posts/{post_id}', function($request) {
+    return [
+        'user_id' => $request->param('user_id'),      // 123
+        'post_id' => $request->param('post_id'),      // 456
+        'status' => $request->query('status'),         // published
+        'all_params' => $request->params(),            // ['user_id' => 123, 'post_id' => 456]
+        'all_input' => $request->all()                 // All data combined
+    ];
+});
+```
+
+## Controllers
+
+Use controllers for organized code:
+
+```php
+// routes/web.php
+Route::web('products/{slug}', 'ProductController@show');
+Route::web('categories/{category}/products', 'ProductController@index');
+
+// controllers/ProductController.php
+class ProductController {
+    public function show($request) {
+        $slug = $request->param('slug');
+        $product = Product::find_by_slug($slug);
+        return view('product-detail', ['product' => $product]);
     }
-
-    // Search implementation
-    $posts = get_posts([
-        's' => sanitize_text_field($query),
-        'post_type' => 'any',
-        'post_status' => 'publish',
-        'numberposts' => 10
-    ]);
-
-    return ['query' => $query, 'results' => count($posts)];
-});
-
-/*
-|--------------------------------------------------------------------------
-| Authenticated Routes
-|--------------------------------------------------------------------------
-| These routes require user authentication
-*/
-
-Route::group(['middleware' => 'auth'], function() {
-    // User's own posts - full CRUD
-    route_resource('my/posts', 'PostController', [
-        'only' => ['store', 'update', 'destroy']
-    ]);
-
-    // Profile management
-    Route::get('profile', 'UserController@profile');
-    Route::put('profile', 'UserController@updateProfile');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Admin Routes
-|--------------------------------------------------------------------------
-| These routes require admin privileges
-*/
-
-Route::group([
-    'middleware' => ['auth', 'capability:manage_options'],
-    'prefix' => 'admin'
-], function() {
-    // Admin-only full access
-    route_resource('posts', 'PostController');
-    route_resource('users', 'UserController');
-
-    // System management
-    Route::get('stats', 'AdminController@stats');
-    Route::post('cache/clear', 'AdminController@clearCache');
-});
-
-/*
-|--------------------------------------------------------------------------
-| API Versioning Example
-|--------------------------------------------------------------------------
-*/
-
-// V2 API with enhanced features
-Route::group(['namespace' => 'myapp/v2'], function() {
-    route_resource('posts', 'V2\\PostController');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Development Routes
-|--------------------------------------------------------------------------
-| Only available when WP_DEBUG is enabled
-*/
-
-if (defined('WP_DEBUG') && WP_DEBUG) {
-    Route::get('debug/routes', function($request) {
-        $routes = Route::getRoutes();
-        return [
-            'total_routes' => count($routes),
-            'routes' => array_map(function($route) {
-                return [
-                    'methods' => $route->getMethods(),
-                    'namespace' => $route->getNamespace(),
-                    'endpoint' => $route->getEndpoint(),
-                ];
-            }, $routes)
-        ];
-    });
+    
+    public function index($request) {
+        $category = $request->param('category');
+        $products = Product::by_category($category);
+        return view('products', ['products' => $products]);
+    }
 }
 ```
 
-### File Locations
+## Middleware System
 
-The `routes.php` file should be placed in:
-
-**Theme Mode:**
-- `{theme}/routes.php` (Recommended)
-- `{theme}/routes/api.php`
-- `{theme}/api/routes.php`
-
-**Plugin Mode:**
-- `{plugin}/routes.php` (Recommended)
-- `{plugin}/routes/api.php`
-- `{plugin}/src/routes.php`
-
-### Benefits of Routes File Approach
-
-✅ **Laravel-style** - Familiar route organization
-✅ **Separation of concerns** - Routes separate from theme logic
-✅ **Easy maintenance** - All routes in one place
-✅ **Version control friendly** - Easy to track route changes
-✅ **Automatic loading** - Zero configuration required
-✅ **Organized structure** - Routes grouped by functionality
-
-## Basic Routing
-
-### Defining Routes
+Protect routes with middleware:
 
 ```php
-use WordPressRoutes\Routing\Route;
+// Individual middleware
+Route::web('dashboard', $callback)->middleware(['auth', 'capability:edit_posts']);
 
-add_action('rest_api_init', function() {
-    // Set API namespace
-    Route::setNamespace('myapp/v1');
-
-    // Basic routes
-    Route::get('products', 'ProductController@index');
-    Route::post('products', 'ProductController@store');
-    Route::get('products/{id}', 'ProductController@show');
-    Route::put('products/{id}', 'ProductController@update');
-    Route::delete('products/{id}', 'ProductController@destroy');
-});
-```
-
-### Available Route Methods
-
-```php
-// HTTP GET
-Route::get('users', 'UserController@index');
-
-// HTTP POST
-Route::post('users', 'UserController@store');
-
-// HTTP PUT
-Route::put('users/{id}', 'UserController@update');
-
-// HTTP PATCH
-Route::patch('users/{id}', 'UserController@partialUpdate');
-
-// HTTP DELETE
-Route::delete('users/{id}', 'UserController@destroy');
-
-// Multiple HTTP methods
-Route::match(['GET', 'POST'], 'search', 'SearchController@handle');
-
-// Any HTTP method
-Route::any('webhook', 'WebhookController@handle');
-```
-
-### Route Parameters
-
-```php
-// Required parameters
-Route::get('users/{id}', 'UserController@show');
-Route::get('posts/{post}/comments/{comment}', 'CommentController@show');
-
-// Optional parameters
-Route::get('products/{category?}', 'ProductController@index');
-
-// Parameter constraints
-Route::get('users/{id}', 'UserController@show')
-    ->where('id', '[0-9]+'); // Only numeric IDs
-
-Route::get('posts/{slug}', 'PostController@show')
-    ->where('slug', '[a-z-]+'); // Only lowercase letters and dashes
-```
-
-## Route Naming
-
-### Named Routes
-
-```php
-// Name routes for URL generation
-Route::get('products', 'ProductController@index')
-    ->name('products.index');
-
-Route::get('products/{id}', 'ProductController@show')
-    ->name('products.show');
-
-// Generate URLs
-$url = route_url('products.index');
-// Returns: /wp-json/myapp/v1/products
-
-$url = route_url('products.show', ['id' => 123]);
-// Returns: /wp-json/myapp/v1/products/123
-```
-
-## Resource Routes
-
-### Basic Resource
-
-```php
-// Creates all CRUD routes
-Route::resource('products', 'ProductController');
-
-// Equivalent to:
-// GET    /products         -> index
-// POST   /products         -> store
-// GET    /products/{id}    -> show
-// PUT    /products/{id}    -> update
-// DELETE /products/{id}    -> destroy
-```
-
-### Partial Resources
-
-```php
-// Only specific methods
-Route::resource('products', 'ProductController')
-    ->only(['index', 'show']);
-
-// Exclude specific methods
-Route::resource('products', 'ProductController')
-    ->except(['destroy']);
-```
-
-### Nested Resources
-
-```php
-// Nested resources
-Route::resource('posts.comments', 'CommentController');
-
-// Creates routes like:
-// GET    /posts/{post}/comments
-// POST   /posts/{post}/comments
-// GET    /posts/{post}/comments/{comment}
-// PUT    /posts/{post}/comments/{comment}
-// DELETE /posts/{post}/comments/{comment}
-```
-
-## Route Groups
-
-### Basic Groups
-
-```php
-// Group routes with common prefix
-Route::group(['prefix' => 'admin'], function() {
-    Route::get('users', 'AdminController@users');
-    Route::get('settings', 'AdminController@settings');
-});
-
-// Creates:
-// /wp-json/myapp/v1/admin/users
-// /wp-json/myapp/v1/admin/settings
-```
-
-### Middleware Groups
-
-```php
-// Apply middleware to all routes in group
+// Route groups
 Route::group(['middleware' => ['auth']], function() {
-    Route::get('profile', 'ProfileController@show');
-    Route::put('profile', 'ProfileController@update');
-    Route::delete('account', 'AccountController@destroy');
+    Route::web('profile', $profileCallback);
+    Route::web('settings', $settingsCallback);
+    Route::api('user-data', $userDataCallback);
 });
 ```
 
-### Namespace Groups
+## Template Integration
+
+Web routes integrate with WordPress themes:
 
 ```php
-// Different namespace for group
-Route::group(['namespace' => 'admin/v1'], function() {
-    Route::get('dashboard', 'DashboardController@index');
+// Return view with data
+Route::web('portfolio/{project}', function($request) {
+    return view('portfolio-detail', [
+        'project' => $request->param('project'),
+        'featured' => true
+    ]);
 });
 
-// Creates: /wp-json/admin/v1/dashboard
+// Use custom template
+Route::web('custom-page', function($request) {
+    return $request->query();
+})->template('custom-template.php');
 ```
 
-### Nested Groups
+## File Organization
 
+### Automatic Loading
+Route files are automatically loaded in priority order:
+1. `routes/api.php` - API endpoints (highest priority)
+2. `routes/auth.php` - Protected routes  
+3. `routes/web.php` - Public web routes (lowest priority)
+4. `routes/webhooks.php` - Webhook endpoints
+5. `routes/admin.php` - Admin pages
+
+### Manual Loading
+You can also manually load routes:
 ```php
-// Nested groups
-Route::group(['prefix' => 'api', 'middleware' => ['auth']], function() {
-    // Public authenticated routes
-    Route::get('profile', 'ProfileController@show');
-
-    // Admin-only routes
-    Route::group(['prefix' => 'admin', 'middleware' => ['capability:manage_options']], function() {
-        Route::resource('users', 'AdminController');
-        Route::get('analytics', 'AnalyticsController@index');
-    });
-});
+// functions.php
+require_once get_template_directory() . '/routes/custom.php';
 ```
 
-## Route Middleware
+## Advanced Features
 
-### Single Route Middleware
+### Route Caching
+Routes are automatically cached for performance.
 
+### Route Groups
+Organize related routes:
 ```php
-Route::get('protected', 'ProtectedController@index')
-    ->middleware(['auth']);
-
-Route::post('upload', 'UploadController@store')
-    ->middleware(['auth', 'rate_limit:10,1']);
-```
-
-### Middleware Parameters
-
-```php
-// Middleware with parameters
-Route::delete('posts/{id}', 'PostController@destroy')
-    ->middleware(['capability:delete_posts']);
-
-Route::get('admin/data', 'AdminController@data')
-    ->middleware(['role:administrator']);
-```
-
-## Route Model Binding
-
-### Automatic Model Binding
-
-```php
-// If you're using WordPress ORM
-Route::get('products/{product}', 'ProductController@show');
-
-// In controller:
-public function show(WP_REST_Request $request, Product $product)
-{
-    // $product is automatically resolved from the {product} parameter
-    return $this->success($product);
-}
-```
-
-### Custom Route Model Binding
-
-```php
-// Custom binding logic
-Route::bind('post', function($value) {
-    return get_post($value);
-});
-
-// Use in route
-Route::get('posts/{post}', function($request, $post) {
-    // $post is the resolved WP_Post object
-    return ['post' => $post];
+Route::group(['prefix' => 'api/v2', 'middleware' => ['auth']], function() {
+    Route::get('users', $callback);
+    Route::get('posts', $callback);
 });
 ```
 
-## Route Caching
-
-### Enable Route Caching
-
+### Route Names
+Name routes for URL generation:
 ```php
-// Cache routes for better performance
-Route::enableRouteCache(true);
-
-// Custom cache duration (in seconds)
-Route::setCacheDuration(3600); // 1 hour
+Route::web('contact', $callback)->name('contact.show');
+$url = route_url('contact.show'); // Get URL
 ```
 
-### Cache Invalidation
-
+### Multiple Parameters
+Handle complex URLs:
 ```php
-// Clear route cache
-Route::clearRouteCache();
-
-// Rebuild cache
-Route::rebuildRouteCache();
-```
-
-## Route Conditions
-
-### Conditional Routes
-
-```php
-// Only register routes under certain conditions
-if (current_user_can('manage_options')) {
-    Route::resource('admin/users', 'AdminUserController');
-}
-
-if (defined('WP_DEBUG') && WP_DEBUG) {
-    Route::get('debug/info', 'DebugController@info');
-}
-```
-
-### Environment-based Routes
-
-```php
-// Different routes for different environments
-if (wp_get_environment_type() === 'development') {
-    Route::get('dev/test', 'TestController@index');
-}
-
-if (wp_get_environment_type() === 'production') {
-    Route::get('status', 'StatusController@health');
-}
-```
-
-## Route Fallbacks
-
-### 404 Fallback
-
-```php
-// Custom 404 handler
-Route::fallback(function() {
-    return new WP_REST_Response([
-        'success' => false,
-        'message' => 'API endpoint not found'
-    ], 404);
+// /shop/electronics/laptops/gaming?color=black&price=1000
+Route::web('shop/{category}/{subcategory}/{type}', function($request) {
+    return [
+        'category' => $request->param('category'),
+        'subcategory' => $request->param('subcategory'), 
+        'type' => $request->param('type'),
+        'filters' => $request->query()
+    ];
 });
 ```
 
-## Advanced Routing
+## Migration from Legacy
 
-### Route Macros
+If migrating from the old API-only system:
 
+### Old Way (Legacy)
 ```php
-// Define reusable route patterns
-Route::macro('apiResource', function($name, $controller) {
-    return Route::resource($name, $controller)
-        ->middleware(['auth', 'rate_limit:60,1']);
-});
-
-// Use macro
-Route::apiResource('products', 'ProductController');
+// Old routes.php
+Route::setNamespace('api/v1');
+Route::get('users', $callback); // API only
 ```
 
-### Route Subdomain
-
+### New Way (Modern)
 ```php
-// Routes for specific subdomains (if supported)
-Route::group(['domain' => 'api.example.com'], function() {
-    Route::resource('products', 'ProductController');
-});
+// routes/api.php
+RouteManager::setNamespace('api/v1');
+Route::get('users', $callback); // API routes
+
+// routes/web.php  
+Route::web('users/{id}', $callback); // Web routes
+
+// routes/auth.php
+Route::web('dashboard', $callback)->middleware(['auth']); // Protected
 ```
 
-### HTTPS Only Routes
+The modern system provides the same API route functionality plus support for all other route types with a unified interface.
 
-```php
-// Require HTTPS for sensitive routes
-Route::group(['https'], function() {
-    Route::post('payment', 'PaymentController@process');
-    Route::get('admin/sensitive', 'AdminController@sensitive');
-});
-```
+## Next Steps
 
-## Route Testing
+- See [Controllers Documentation](controllers.md) for controller usage
+- See [Middleware Documentation](middleware.md) for authentication and security  
+- See [Template System](templates.md) for view rendering
+- See [Examples](examples.md) for complete implementation examples
 
-### Testing Routes
-
-```php
-class RouteTest extends WP_UnitTestCase
-{
-    public function test_product_index_route()
-    {
-        // Make request to route
-        $request = new WP_REST_Request('GET', '/wp-json/myapp/v1/products');
-        $response = rest_do_request($request);
-
-        // Assert response
-        $this->assertEquals(200, $response->get_status());
-        $data = $response->get_data();
-        $this->assertIsArray($data);
-    }
-
-    public function test_protected_route_requires_auth()
-    {
-        // Test without authentication
-        $request = new WP_REST_Request('GET', '/wp-json/myapp/v1/profile');
-        $response = rest_do_request($request);
-
-        $this->assertEquals(401, $response->get_status());
-    }
-}
-```
-
-## Route Debugging
-
-### List All Routes
-
-```bash
-# List all registered routes
-wp routes:list
-```
-
-### Debug Route Resolution
-
-```php
-// Debug route matching
-add_action('rest_api_init', function() {
-    if (defined('WP_DEBUG') && WP_DEBUG) {
-        Route::debugRoutes(true);
-    }
-});
-```
-
-## Best Practices
-
-1. **Use Resource Routes**: For CRUD operations, use resource routes
-2. **Group Related Routes**: Use route groups for organization
-3. **Apply Middleware Consistently**: Use groups to apply middleware to multiple routes
-4. **Name Important Routes**: Name routes you'll need to generate URLs for
-5. **Use Parameter Constraints**: Validate route parameters with regex
-6. **Cache Routes**: Enable route caching in production
-7. **Test Routes**: Write tests for your API routes
-8. **Document APIs**: Document your routes and their parameters
-
----
-
-Next: [CLI Commands →](cli.md)
+The unified routing system gives you the power of Laravel-style routing within WordPress, supporting all route types with consistent parameter handling and powerful features.

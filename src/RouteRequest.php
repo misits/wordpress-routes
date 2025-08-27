@@ -15,11 +15,32 @@ defined("ABSPATH") or exit();
 class RouteRequest
 {
     /**
-     * WordPress REST request
+     * WordPress REST request (for API routes)
      *
-     * @var \WP_REST_Request
+     * @var \WP_REST_Request|null
      */
     protected $request;
+
+    /**
+     * URL parameters (for all route types)
+     *
+     * @var array
+     */
+    protected $urlParams = [];
+
+    /**
+     * Query parameters (for web/admin routes)
+     *
+     * @var array
+     */
+    protected $queryParams = [];
+
+    /**
+     * POST data (for web/admin routes)
+     *
+     * @var array
+     */
+    protected $postData = [];
 
     /**
      * Parsed JSON data
@@ -36,13 +57,63 @@ class RouteRequest
     protected $validatedData;
 
     /**
+     * Route type (api, web, admin, ajax, webhook)
+     *
+     * @var string
+     */
+    protected $routeType = 'api';
+
+    /**
      * Create Route request wrapper
      *
-     * @param \WP_REST_Request $request
+     * @param \WP_REST_Request|null $request WordPress REST request (for API routes)
+     * @param array $urlParams URL parameters extracted from route pattern
+     * @param string $routeType Type of route (api, web, admin, ajax, webhook)
      */
-    public function __construct(\WP_REST_Request $request)
+    public function __construct(?\WP_REST_Request $request = null, array $urlParams = [], string $routeType = 'api')
     {
         $this->request = $request;
+        $this->urlParams = $urlParams;
+        $this->routeType = $routeType;
+        
+        // For non-API routes, populate query and post data from globals
+        if (!$request && in_array($routeType, ['web', 'admin', 'ajax'])) {
+            $this->queryParams = $_GET ?? [];
+            $this->postData = $_POST ?? [];
+        }
+    }
+
+    /**
+     * Create RouteRequest for web routes
+     *
+     * @param array $urlParams URL parameters extracted from route pattern
+     * @return static
+     */
+    public static function createForWeb(array $urlParams = [])
+    {
+        return new static(null, $urlParams, 'web');
+    }
+
+    /**
+     * Create RouteRequest for admin routes
+     *
+     * @param array $urlParams URL parameters extracted from route pattern
+     * @return static
+     */
+    public static function createForAdmin(array $urlParams = [])
+    {
+        return new static(null, $urlParams, 'admin');
+    }
+
+    /**
+     * Create RouteRequest for AJAX routes
+     *
+     * @param array $urlParams URL parameters extracted from route pattern
+     * @return static
+     */
+    public static function createForAjax(array $urlParams = [])
+    {
+        return new static(null, $urlParams, 'ajax');
     }
 
     /**
@@ -99,7 +170,21 @@ class RouteRequest
             return $this->all();
         }
 
-        // Try body parameters first
+        // For web/admin/ajax routes
+        if (!$this->request) {
+            // Try POST first, then query params, then URL params
+            if (array_key_exists($key, $this->postData)) {
+                return $this->postData[$key];
+            }
+            
+            if (array_key_exists($key, $this->queryParams)) {
+                return $this->queryParams[$key];
+            }
+            
+            return $this->urlParams[$key] ?? $default;
+        }
+
+        // For API routes - try body parameters first
         $body = $this->request->get_json_params() ?: $this->request->get_body_params();
         if (is_array($body) && array_key_exists($key, $body)) {
             return $body[$key];
@@ -117,6 +202,12 @@ class RouteRequest
      */
     public function all()
     {
+        // For web/admin/ajax routes
+        if (!$this->request) {
+            return array_merge($this->queryParams, $this->urlParams, $this->postData);
+        }
+
+        // For API routes
         $json = $this->request->get_json_params() ?: [];
         $body = $this->request->get_body_params() ?: [];
         $query = $this->request->get_query_params() ?: [];
@@ -181,8 +272,30 @@ class RouteRequest
      */
     public function param($key, $default = null)
     {
+        // For web/admin/ajax routes, use urlParams
+        if (!$this->request) {
+            return $this->urlParams[$key] ?? $default;
+        }
+        
+        // For API routes, use WordPress REST API params
         $params = $this->request->get_url_params();
         return $params[$key] ?? $default;
+    }
+
+    /**
+     * Get all URL parameters
+     *
+     * @return array
+     */
+    public function params()
+    {
+        // For web/admin/ajax routes, use urlParams
+        if (!$this->request) {
+            return $this->urlParams;
+        }
+        
+        // For API routes, use WordPress REST API params
+        return $this->request->get_url_params();
     }
 
     /**
@@ -194,6 +307,15 @@ class RouteRequest
      */
     public function query($key = null, $default = null)
     {
+        // For web/admin/ajax routes, use queryParams
+        if (!$this->request) {
+            if ($key === null) {
+                return $this->queryParams;
+            }
+            return $this->queryParams[$key] ?? $default;
+        }
+        
+        // For API routes, use WordPress REST API query params
         $params = $this->request->get_query_params();
         
         if ($key === null) {
@@ -361,20 +483,28 @@ class RouteRequest
      */
     public function isAuthenticated()
     {
-        // Check if user is logged in (works with cookie auth and application passwords)
-        if (is_user_logged_in()) {
-            return true;
+        // For API routes with WordPress REST request
+        if ($this->request) {
+            // Check if user is logged in (works with cookie auth and application passwords)
+            if (is_user_logged_in()) {
+                return true;
+            }
+            
+            // Check for nonce-based authentication (WordPress default for logged-in users)
+            $nonce = $this->request->get_header('X-WP-Nonce') ?: 
+                     $this->request->get_header('x-wp-nonce') ?: 
+                     $this->request->get_param('_wpnonce');
+            if ($nonce && wp_verify_nonce($nonce, 'wp_rest')) {
+                return true;
+            }
+            
+            // Check if current user was determined by WordPress REST API
+            $current_user_id = get_current_user_id();
+            return $current_user_id > 0;
         }
         
-        // Check for nonce-based authentication (WordPress default for logged-in users)
-        $nonce = $this->header('X-WP-Nonce') ?: $this->query('_wpnonce');
-        if ($nonce && wp_verify_nonce($nonce, 'wp_rest')) {
-            return true;
-        }
-        
-        // Check if current user was determined by WordPress REST API
-        $current_user_id = get_current_user_id();
-        return $current_user_id > 0;
+        // For web/admin/ajax routes without WordPress REST request
+        return is_user_logged_in();
     }
 
     /**

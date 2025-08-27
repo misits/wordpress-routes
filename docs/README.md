@@ -44,6 +44,7 @@ The following files are auto-generated from templates with variable replacement:
 - `routes/api.php` - REST API endpoints
 - `routes/web.php` - Frontend pages  
 - `routes/auth.php` - Authentication routes
+- `routes/webhooks.php` - Webhook endpoints
 
 Template variables replaced during scaffolding:
 - `{{THEME_NAME}}` - Your theme/plugin name
@@ -87,6 +88,19 @@ Route::admin('settings', 'App Settings', function($request) {
 Route::ajax('save_data', function($request) {
     return ['saved' => true];
 })->auth();
+
+// routes/webhooks.php - Auto-generated
+Route::webhook('github', function($request) {
+    $payload = $request['json'];
+    // Handle GitHub events
+    return ['success' => true];
+})->signature('your-webhook-secret');
+
+Route::webhook('stripe', function($request) {
+    $event = $request['json'];
+    // Handle Stripe events
+    return ['received' => true];
+})->signature('your-stripe-secret');
 ```
 
 ### 4. Create Templates (Optional)
@@ -118,15 +132,17 @@ $data = $GLOBALS['admin_route_data'] ?? [];
 - **Web**: `https://yoursite.com/about`
 - **Admin**: WordPress Admin → App Settings
 - **AJAX**: JavaScript with `action: 'save_data'`
+- **Webhooks**: `/wp-json/webhooks/v1/github`, `/wp-json/webhooks/v1/stripe`
 
 ## Features
 
 - **🚀 Auto-Scaffolding**: Automatically creates `/routes` directory structure on first run
-- **🌐 4 Route Types**: API, Web, Admin, and AJAX routes in one unified system
+- **🌐 5 Route Types**: API, Web, Admin, AJAX, and Webhook routes in one unified system
 - **📄 Template Support**: Custom templates for Web and Admin routes with data binding  
 - **🎯 Laravel-style Syntax**: Familiar, elegant routing with method chaining
 - **📁 Route Groups**: Group routes with shared prefix, middleware, and namespace
 - **🛡️ Middleware Support**: Authentication, rate limiting, validation, CORS, and custom middleware
+- **🔐 Webhook Security**: Signature verification, bearer tokens, IP whitelisting for secure webhook handling
 - **📦 Plugin & Theme Modes**: Flexible template resolution for both deployment types
 - **🤖 Auto-loading**: Routes are automatically discovered and loaded from `/routes` directory
 - **🔧 CLI Tools**: Generate controllers and middleware with WP-CLI

@@ -34,7 +34,7 @@ trait HandlesApiRoutes
                     'permission_callback' => '__return_true'
                 ]
             );
-        });
+        }, 5); // Priority 5 - register API routes first
     }
 
     /**

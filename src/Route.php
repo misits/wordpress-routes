@@ -28,6 +28,7 @@ class Route
     const TYPE_WEB = 'web';
     const TYPE_ADMIN = 'admin';
     const TYPE_AJAX = 'ajax';
+    const TYPE_WEBHOOK = 'webhook';
 
     /**
      * Route type
@@ -49,6 +50,13 @@ class Route
      * @var string
      */
     protected $endpoint;
+
+    /**
+     * Original endpoint (before parameter conversion)
+     *
+     * @var string
+     */
+    protected $originalEndpoint;
 
     /**
      * Route namespace (for API routes)
@@ -129,6 +137,7 @@ class Route
     public function __construct($methods, $endpoint, $callback, $type = self::TYPE_API)
     {
         $this->methods = is_array($methods) ? $methods : [$methods];
+        $this->originalEndpoint = trim($endpoint, '/'); // Store original before conversion
         $this->endpoint = $this->normalizeEndpoint($endpoint);
         $this->callback = $callback;
         $this->type = $type;
@@ -259,6 +268,20 @@ class Route
     }
 
     /**
+     * Create webhook route
+     *
+     * @param string $endpoint
+     * @param callable|string $callback
+     * @return static
+     */
+    public static function webhook($endpoint, $callback)
+    {
+        $route = new static(['POST'], $endpoint, $callback, self::TYPE_WEBHOOK);
+        $route->attributes['public'] = true; // Webhooks are public by default
+        return $route;
+    }
+
+    /**
      * Create a route group
      *
      * @param array $attributes
@@ -291,7 +314,59 @@ class Route
      */
     protected function normalizeEndpoint($endpoint)
     {
-        return trim($endpoint, '/');
+        $originalEndpoint = $endpoint;
+        $endpoint = trim($endpoint, '/');
+        
+        // Handle optional parameters by registering multiple routes
+        if (strpos($endpoint, '?}') !== false) {
+            $this->registerOptionalParameterRoutes($endpoint);
+        }
+        
+        // Convert {param} and {param?} to WordPress REST API regex format
+        $endpoint = preg_replace_callback('/{([^}]+)}/', function($matches) {
+            $param = $matches[1];
+            $optional = false;
+            
+            // Check for optional parameter {id?}
+            if (substr($param, -1) === '?') {
+                $param = substr($param, 0, -1);
+                $optional = true;
+            }
+            
+            // For optional parameters, convert to required for the main route
+            return '(?P<' . $param . '>[\w\-]+)';
+        }, $endpoint);
+        
+        
+        return $endpoint;
+    }
+
+    /**
+     * Register additional routes for optional parameters
+     */
+    protected function registerOptionalParameterRoutes($endpoint)
+    {
+        // Create version without optional parameters
+        $withoutOptional = preg_replace('/\/\{[^}]+\?\}/', '', $endpoint);
+        $withoutOptional = preg_replace_callback('/{([^}]+)}/', function($matches) {
+            $param = $matches[1];
+            return '(?P<' . $param . '>[\w\-]+)';
+        }, $withoutOptional);
+        
+        // Register the route without optional parameters
+        add_action('rest_api_init', function() use ($withoutOptional) {
+            $namespace = $this->namespace ?: RouteManager::getNamespace();
+            register_rest_route(
+                $namespace,
+                '/' . $withoutOptional,
+                [
+                    'methods' => $this->methods,
+                    'callback' => [$this, 'handleApiRequest'],
+                    'permission_callback' => '__return_true'
+                ]
+            );
+            
+        });
     }
 
     /**
@@ -301,9 +376,11 @@ class Route
     {
         $groupAttributes = RouteManager::getCurrentGroupAttributes();
         
-        // Apply prefix to endpoint
+        // Apply prefix to both endpoint and original endpoint
         if (!empty($groupAttributes['prefix'])) {
-            $this->endpoint = trim($groupAttributes['prefix'], '/') . '/' . ltrim($this->endpoint, '/');
+            $prefix = trim($groupAttributes['prefix'], '/') . '/';
+            $this->endpoint = $prefix . ltrim($this->endpoint, '/');
+            $this->originalEndpoint = $prefix . ltrim($this->originalEndpoint, '/');
         }
         
         // Apply group middleware
@@ -323,11 +400,19 @@ class Route
      */
     protected function parseParameters()
     {
-        preg_match_all('/{([^}]+)}/', $this->endpoint, $matches);
+        // Parse parameters from the original endpoint (before regex conversion)
+        $originalEndpoint = $this->originalEndpoint ?? $this->endpoint;
+        
+        preg_match_all('/{([^}]+)}/', $originalEndpoint, $matches);
         if (!empty($matches[1])) {
             foreach ($matches[1] as $param) {
                 $paramName = str_replace('?', '', $param);
-                $this->params[$paramName] = $param;
+                $isOptional = substr($param, -1) === '?';
+                $this->params[$paramName] = [
+                    'name' => $paramName,
+                    'optional' => $isOptional,
+                    'original' => $param
+                ];
             }
         }
     }
@@ -424,6 +509,9 @@ class Route
                 break;
             case self::TYPE_AJAX:
                 $this->registerAjaxRoute();
+                break;
+            case self::TYPE_WEBHOOK:
+                $this->registerWebhookRoute();
                 break;
         }
         
@@ -702,6 +790,130 @@ class Route
         if ($this->type === self::TYPE_AJAX) {
             $this->attributes['nopriv'] = $allow;
         }
+        return $this;
+    }
+
+    /**
+     * Register webhook route (simplified implementation)
+     */
+    protected function registerWebhookRoute()
+    {
+        add_action('rest_api_init', function() {
+            register_rest_route('webhooks/v1', $this->endpoint, [
+                'methods' => 'POST',
+                'callback' => [$this, 'handleWebhookRequest'],
+                'permission_callback' => '__return_true', // Public by default
+                'args' => []
+            ]);
+        }, 6); // Priority 6 - register webhook routes after API
+    }
+
+    /**
+     * Handle webhook request (simplified implementation)
+     */
+    public function handleWebhookRequest($request)
+    {
+        // Create webhook request object
+        $webhookRequest = $this->createWebhookRequest($request);
+        
+        // Execute callback
+        try {
+            $response = call_user_func($this->callback, $webhookRequest);
+            
+            if (is_array($response) || is_object($response)) {
+                return new \WP_REST_Response($response, 200);
+            }
+            
+            return new \WP_REST_Response(['success' => true, 'data' => $response], 200);
+            
+        } catch (\Exception $e) {
+            return new \WP_Error('webhook_error', $e->getMessage(), ['status' => 500]);
+        }
+    }
+
+    /**
+     * Create webhook request object (simplified implementation)
+     */
+    protected function createWebhookRequest($request)
+    {
+        $body = $request->get_body();
+        $headers = $request->get_headers();
+        
+        // Try to parse JSON body
+        $parsedBody = json_decode($body, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $parsedBody = null;
+        }
+
+        return [
+            'endpoint' => $this->originalEndpoint,
+            'method' => $request->get_method(),
+            'headers' => $headers,
+            'body' => $body,
+            'json' => $parsedBody,
+            'params' => $request->get_params(),
+            'query' => $request->get_query_params(),
+            'client_ip' => $this->getClientIp(),
+            'user_agent' => $headers['user_agent'][0] ?? '',
+            'content_type' => $headers['content_type'][0] ?? '',
+        ];
+    }
+
+    /**
+     * Get client IP address
+     */
+    protected function getClientIp()
+    {
+        $ipKeys = [
+            'HTTP_CF_CONNECTING_IP',     // Cloudflare
+            'HTTP_X_FORWARDED_FOR',      // Load balancer/proxy
+            'HTTP_X_FORWARDED',          // Proxy
+            'HTTP_X_CLUSTER_CLIENT_IP',  // Cluster balancer
+            'HTTP_FORWARDED_FOR',        // Proxy
+            'HTTP_FORWARDED',            // Proxy
+            'REMOTE_ADDR'                // Standard
+        ];
+
+        foreach ($ipKeys as $key) {
+            if (!empty($_SERVER[$key])) {
+                $ips = explode(',', $_SERVER[$key]);
+                $ip = trim($ips[0]);
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+            }
+        }
+
+        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    }
+
+    /**
+     * Add signature verification middleware
+     */
+    public function signature($secret)
+    {
+        $this->middleware[] = 'signature:' . $secret;
+        return $this;
+    }
+
+    /**
+     * Add bearer token authentication
+     */
+    public function bearer($token)
+    {
+        $this->middleware[] = 'bearer:' . $token;
+        return $this;
+    }
+
+    /**
+     * Add IP whitelist
+     */
+    public function allowIps($ips)
+    {
+        if (is_array($ips)) {
+            $ips = implode(',', $ips);
+        }
+        $this->middleware[] = 'ip:' . $ips;
         return $this;
     }
 }

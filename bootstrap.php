@@ -112,6 +112,9 @@ require_once WPROUTES_SRC_DIR . "/Autoloader.php";
 // Register controller autoloader
 \WordPressRoutes\Routing\ControllerAutoloader::register();
 
+// Initialize middleware registry
+\WordPressRoutes\Routing\MiddlewareRegistry::init();
+
 // Optional: Auto-initialize on WordPress init
 // You can disable this by defining WPROUTES_NO_AUTO_INIT before including bootstrap
 if (!defined("WPROUTES_NO_AUTO_INIT")) {
@@ -213,8 +216,8 @@ function wproutes_auto_load_routes()
                 if (is_dir($routes_dir)) {
                     $routes_files = [
                         $routes_dir . "/api.php",
-                        $routes_dir . "/web.php", 
                         $routes_dir . "/auth.php",
+                        $routes_dir . "/web.php",
                     ];
                 } else {
                     // Fallback to old structure for backward compatibility
@@ -238,8 +241,8 @@ function wproutes_auto_load_routes()
                         array_unshift(
                             $routes_files,
                             $child_routes_dir . "/api.php",
-                            $child_routes_dir . "/web.php",
                             $child_routes_dir . "/auth.php",
+                            $child_routes_dir . "/web.php",
                         );
                     } else {
                         // Child theme fallback
@@ -367,7 +370,8 @@ function wproutes_scaffold_routes()
     $template_files = [
         'api.php' => 'api.php',
         'web.php' => 'web.php', 
-        'auth.php' => 'auth.php'
+        'auth.php' => 'auth.php',
+        'webhooks.php' => 'webhooks.php'
     ];
     
     // Create route files from templates if they don't exist
@@ -746,6 +750,41 @@ if (!function_exists("controller")) {
     {
         return wproutes_controller($controllerName);
     }
+}
+
+/**
+ * Laravel-style view helper for WordPress routes
+ *
+ * @param string $template Template name (without .php extension)
+ * @param array $data Data to pass to the template
+ * @return string Rendered template content
+ */
+function wproutes_view($template, $data = []) {
+    // Extract variables to make them available in the template
+    extract($data);
+    
+    // Start output buffering
+    ob_start();
+    
+    // Include WordPress header
+    get_header();
+    
+    // Check if template exists and include it
+    $template_path = get_template_directory() . '/' . $template . '.php';
+    if (file_exists($template_path)) {
+        include $template_path;
+    } else {
+        echo '<div class="error">Template not found: ' . esc_html($template) . '</div>';
+    }
+    
+    // Include WordPress footer
+    get_footer();
+    
+    // Get the buffered content and clean the buffer
+    $content = ob_get_clean();
+    
+    // Return the content
+    return $content;
 }
 
 // Register WP-CLI commands after WordPress is initialized

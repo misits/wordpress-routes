@@ -86,7 +86,7 @@ class Autoloader
         // Then load other core classes
         $coreClasses = [
             "VirtualPage", // Load VirtualPage early for web routes
-            "RouteRequest",
+            "RouteRequest", // Universal request class for all route types
             "RouteManager",
             "MiddlewareRegistry",
             "BaseController",

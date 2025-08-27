@@ -1,0 +1,113 @@
+<?php
+/**
+ * Webhook Routes for {{THEME_NAME}}
+ */
+
+use WordPressRoutes\Routing\Route;
+
+// GitHub webhook example
+Route::webhook('github', function($request) {
+    // GitHub sends JSON payloads
+    $payload = $request['json'];
+    
+    if (!$payload) {
+        return ['error' => 'Invalid JSON payload'];
+    }
+    
+    // Handle different GitHub events
+    switch ($request['headers']['x_github_event'][0] ?? '') {
+        case 'push':
+            // Handle push events
+            $commits = $payload['commits'] ?? [];
+            error_log('GitHub push: ' . count($commits) . ' commits');
+            break;
+            
+        case 'pull_request':
+            // Handle pull request events
+            $action = $payload['action'] ?? '';
+            error_log('GitHub PR: ' . $action);
+            break;
+    }
+    
+    return ['success' => true, 'processed' => true];
+})->signature(get_option('github_webhook_secret', 'your-secret-key'));
+
+// Stripe webhook example
+Route::webhook('stripe', function($request) {
+    $payload = $request['json'];
+    
+    if (!$payload) {
+        return ['error' => 'Invalid payload'];
+    }
+    
+    // Handle Stripe events
+    $eventType = $payload['type'] ?? '';
+    
+    switch ($eventType) {
+        case 'payment_intent.succeeded':
+            // Handle successful payment
+            $paymentIntent = $payload['data']['object'];
+            // Update order status, send emails, etc.
+            break;
+            
+        case 'customer.subscription.created':
+            // Handle new subscription
+            $subscription = $payload['data']['object'];
+            // Create user account, etc.
+            break;
+    }
+    
+    return ['received' => true];
+})->signature(get_option('stripe_webhook_secret', 'whsec_your_stripe_secret'));
+
+// Simple webhook with bearer token
+Route::webhook('deploy', function($request) {
+    // Trigger deployment process
+    $payload = $request['json'] ?? [];
+    
+    // Log deployment request
+    error_log('Deployment triggered: ' . json_encode($payload));
+    
+    // You could trigger actual deployment here
+    // exec('cd /path/to/project && git pull && composer install');
+    
+    return [
+        'status' => 'success',
+        'message' => 'Deployment triggered',
+        'timestamp' => time()
+    ];
+})->bearer(get_option('deploy_webhook_token', 'your-secure-token'));
+
+// IP-restricted webhook
+Route::webhook('internal', function($request) {
+    return [
+        'server_status' => 'healthy',
+        'timestamp' => time(),
+        'payload_received' => !empty($request['body'])
+    ];
+})->allowIps(['192.168.1.0/24', '10.0.0.0/8']);
+
+// Public webhook (no security)
+Route::webhook('contact', function($request) {
+    $data = $request['json'] ?? $request['params'];
+    
+    $name = sanitize_text_field($data['name'] ?? '');
+    $email = sanitize_email($data['email'] ?? '');
+    $message = sanitize_textarea_field($data['message'] ?? '');
+    
+    if (empty($name) || empty($email) || empty($message)) {
+        return ['error' => 'Missing required fields'];
+    }
+    
+    // Send email
+    $sent = wp_mail(
+        get_option('admin_email'),
+        'New Contact Form Submission',
+        "Name: {$name}\nEmail: {$email}\nMessage: {$message}"
+    );
+    
+    return [
+        'success' => $sent,
+        'message' => $sent ? 'Message sent successfully' : 'Failed to send message'
+    ];
+});
