@@ -10,7 +10,9 @@ WordPress Routes provides a unified `Route` class that handles **API, Web, Admin
 - [Admin Routes](#admin-routes)
 - [AJAX Routes](#ajax-routes)
 - [Template System](#template-system)
+- [Route Groups](#route-groups)
 - [Middleware](#middleware)
+- [Auto-Scaffolding System](#auto-scaffolding-system)
 - [Plugin vs Theme Mode](#plugin-vs-theme-mode)
 
 ## Route Types
@@ -52,7 +54,10 @@ Route::post('contact', function($request) {
     return ['sent' => true];
 })->validate(['email' => 'required|email', 'message' => 'required']);
 
-// Route with parameters
+// Route with controller
+Route::get('posts', 'PostController@index');
+
+// Route with parameters (API routes only)
 Route::get('posts/{id}', function($request) {
     $id = $request->param('id');
     return get_post($id);
@@ -330,6 +335,103 @@ All route types support middleware for authentication, validation, and custom lo
 ->middleware(['auth', 'can:edit_posts', 'rate_limit:30,60'])
 ```
 
+## Route Groups
+
+Group routes with shared attributes like prefix, middleware, and namespace:
+
+### Basic Route Groups
+```php
+// API route groups with prefix
+Route::group(['prefix' => 'v1'], function() {
+    Route::get('posts', 'PostController@index');     // /wp-json/wp/v2/v1/posts
+    Route::post('posts', 'PostController@store');    // /wp-json/wp/v2/v1/posts
+    Route::get('users', 'UserController@index');     // /wp-json/wp/v2/v1/users
+});
+
+// Web route groups (prefix applies to URL path)
+Route::group(['prefix' => 'admin'], function() {
+    Route::web('dashboard', function() {
+        // Available at /admin/dashboard
+        return ['user' => wp_get_current_user()];
+    })->middleware('auth');
+    
+    Route::web('settings', function() {
+        // Available at /admin/settings
+        return ['options' => get_option('site_options')];
+    })->middleware('auth');
+});
+```
+
+### Route Groups with Middleware
+```php
+// Apply middleware to all routes in group
+Route::group(['middleware' => 'auth'], function() {
+    Route::ajax('save_profile', 'ProfileController@save');
+    Route::ajax('upload_avatar', 'ProfileController@uploadAvatar');
+    Route::web('profile', 'ProfileController@show');
+});
+
+// Multiple middleware
+Route::group(['middleware' => ['auth', 'rate_limit:30,60']], function() {
+    Route::post('sensitive-action', 'ActionController@handle');
+});
+```
+
+### Nested Route Groups
+```php
+Route::group(['prefix' => 'api'], function() {
+    Route::group(['prefix' => 'v1'], function() {
+        Route::get('posts', function() {
+            // Available at /wp-json/wp/v2/api/v1/posts
+            return get_posts();
+        });
+    });
+});
+```
+
+## Auto-Scaffolding System
+
+WordPress Routes automatically creates organized route files on first initialization:
+
+### Scaffolding Process
+1. **Detection**: Checks if `/routes` directory exists
+2. **Creation**: Creates directory and scaffold files if missing
+3. **Template Processing**: Replaces variables like `{{THEME_NAME}}` and `{{NAMESPACE}}`
+4. **File Generation**: Creates `api.php`, `web.php`, and `auth.php` with starter examples
+
+### Generated Files
+```php
+// routes/api.php - Auto-generated
+use WordPressRoutes\Routing\Route;
+
+// API Routes with groups
+Route::group(['prefix' => 'v1'], function() {
+    Route::get('posts', 'PostController@index');
+});
+
+// routes/web.php - Auto-generated  
+Route::web('about', function() {
+    get_header();
+    echo '<h1>About {{THEME_NAME}}</h1>';
+    echo '<p>Welcome to our website!</p>';
+    get_footer();
+})->title('About Us');
+
+// routes/auth.php - Auto-generated
+Route::web('login', function() {
+    if (is_user_logged_in()) {
+        wp_redirect(home_url('/dashboard'));
+        exit();
+    }
+    // Login form logic
+})->public();
+```
+
+### Template Variables
+During scaffolding, these variables are automatically replaced:
+- `{{THEME_NAME}}` - Current theme name or plugin name
+- `{{NAMESPACE}}` - Appropriate namespace for your theme/plugin
+
 ## Plugin vs Theme Mode
 
 Configure the mode based on your deployment:
@@ -338,9 +440,9 @@ Configure the mode based on your deployment:
 ```php
 // In theme's functions.php
 define('WPROUTES_MODE', 'theme');
-require_once get_template_directory() . '/lib/wp-routes/bootstrap.php';
+require_once get_template_directory() . '/vendor/wordpress-routes/bootstrap.php';
 
-// Create: theme/routes.php
+// Create: theme/routes/web.php, routes/api.php, routes/auth.php (auto-scaffolded)
 Route::web('about', $callback)->template('about.php');
 Route::admin('settings', 'Settings', $callback)->template('admin-settings.php');
 ```
@@ -349,9 +451,9 @@ Route::admin('settings', 'Settings', $callback)->template('admin-settings.php');
 ```php
 // In plugin file
 define('WPROUTES_MODE', 'plugin'); 
-require_once plugin_dir_path(__FILE__) . 'lib/wp-routes/bootstrap.php';
+require_once plugin_dir_path(__FILE__) . 'vendor/wordpress-routes/bootstrap.php';
 
-// Create: plugin/routes.php
+// Create: plugin/routes/web.php, routes/api.php, routes/auth.php (auto-scaffolded)
 Route::web('about', $callback)->template('about.php'); // Uses plugin/templates/about.php
 Route::admin('settings', 'Settings', $callback)->template('settings.php'); // Uses plugin/admin-templates/settings.php
 ```
@@ -360,20 +462,16 @@ Route::admin('settings', 'Settings', $callback)->template('settings.php'); // Us
 
 ### Complete Web Route with Middleware
 ```php
-Route::web('portfolio/{category?}', function($request) {
-    $category = $request->param('category', 'all');
-    
+// Note: Web routes use exact path matching (no dynamic parameters)
+Route::web('portfolio', function($request) {
     return [
-        'title' => ucfirst($category) . ' Portfolio',
-        'projects' => get_portfolio_projects($category),
-        'categories' => get_portfolio_categories()
+        'title' => 'Our Portfolio',
+        'projects' => get_posts(['post_type' => 'project']),
+        'categories' => get_terms(['taxonomy' => 'project_category'])
     ];
 })
 ->template('portfolio.php')
-->title(function($request) {
-    $category = $request->param('category', 'all');
-    return ucfirst($category) . ' Portfolio - My Site';
-})
+->title('Portfolio - My Site')
 ->middleware(['cache:3600']); // Custom cache middleware
 ```
 
@@ -432,5 +530,17 @@ Route::post('contact', function($request) {
 ->middleware(['rate_limit:5,60']) // 5 submissions per hour
 ->cors();
 ```
+
+## Important Implementation Notes
+
+### Web Route Limitations
+- **Path Matching**: Web routes use exact path matching only
+- **No Dynamic Parameters**: Routes like `portfolio/{slug}` are not supported for web routes
+- **Use API Routes**: For dynamic parameters, use API routes instead
+
+### Route Group Support
+- **All Route Types**: Groups work with API, Web, Admin, and AJAX routes
+- **Attribute Inheritance**: Grouped routes inherit prefix, middleware, and namespace
+- **Nested Groups**: Support for nested route groups with combined attributes
 
 This unified system provides incredible flexibility while maintaining simplicity and WordPress integration.

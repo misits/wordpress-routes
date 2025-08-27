@@ -36,7 +36,41 @@ trait HandlesWebRoutes
             return;
         }
         
-        // Create and configure virtual page
+        // Check for early redirects before WordPress starts outputting content
+        $request = $this->createWebRequest();
+        
+        // Process middleware first
+        foreach ($this->middleware as $middleware) {
+            if (!$this->processWebMiddleware($middleware, $request)) {
+                wp_die('Access Denied', 403);
+            }
+        }
+        
+        // Check if callback wants to do a redirect by testing it early
+        if (is_callable($this->callback)) {
+            // Use output buffering to catch any redirect attempts
+            ob_start();
+            
+            try {
+                call_user_func($this->callback, $request);
+                $output = ob_get_contents();
+                
+                // If callback generated content, it handled everything (including redirects)
+                if (!empty(trim($output))) {
+                    ob_end_clean();
+                    echo $output;
+                    exit(); // Stop WordPress from continuing
+                }
+                
+                ob_end_clean();
+            } catch (Exception $e) {
+                ob_end_clean();
+                // If callback called exit() or wp_redirect(), we handle it gracefully
+                return;
+            }
+        }
+        
+        // Create and configure virtual page for normal content
         $title = $this->getPageTitle();
         $template = $this->webSettings['template'];
         

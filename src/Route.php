@@ -133,7 +133,8 @@ class Route
         $this->callback = $callback;
         $this->type = $type;
         
-        // Don't set namespace here - defer until registration to get current value
+        // Apply group attributes if we're inside a group
+        $this->applyGroupAttributes();
         
         $this->parseParameters();
         
@@ -291,6 +292,30 @@ class Route
     protected function normalizeEndpoint($endpoint)
     {
         return trim($endpoint, '/');
+    }
+
+    /**
+     * Apply group attributes from RouteManager if we're inside a group
+     */
+    protected function applyGroupAttributes()
+    {
+        $groupAttributes = RouteManager::getCurrentGroupAttributes();
+        
+        // Apply prefix to endpoint
+        if (!empty($groupAttributes['prefix'])) {
+            $this->endpoint = trim($groupAttributes['prefix'], '/') . '/' . ltrim($this->endpoint, '/');
+        }
+        
+        // Apply group middleware
+        if (!empty($groupAttributes['middleware'])) {
+            $middleware = is_array($groupAttributes['middleware']) ? $groupAttributes['middleware'] : [$groupAttributes['middleware']];
+            $this->middleware = array_merge($this->middleware, $middleware);
+        }
+        
+        // Apply namespace (for API routes)
+        if ($this->type === self::TYPE_API && !empty($groupAttributes['namespace'])) {
+            $this->namespace = $groupAttributes['namespace'];
+        }
     }
 
     /**

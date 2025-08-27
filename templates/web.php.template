@@ -1,0 +1,19 @@
+<?php
+/**
+ * Web Routes for {{THEME_NAME}}
+ */
+
+use WordPressRoutes\Routing\Route;
+
+// Basic page
+Route::web('about', function() {
+    get_header();
+    echo '<h1>About {{THEME_NAME}}</h1>';
+    echo '<p>Welcome to our website!</p>';
+    get_footer();
+})->title('About Us');
+
+// Page with template
+Route::web('contact', function() {
+    return ['email' => get_option('admin_email')];
+})->title('Contact')->template('page-contact.php');

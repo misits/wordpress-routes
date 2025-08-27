@@ -23,47 +23,73 @@ WordPress Routes is a unified routing system for WordPress supporting **API, Web
 ```php
 // functions.php
 define("WPROUTES_MODE", "theme");
-require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
+require_once get_template_directory() . "/vendor/wordpress-routes/bootstrap.php";
 ```
 
 **Plugin Mode:**
 ```php
 // your-plugin.php
 define("WPROUTES_MODE", "plugin");
-require_once __DIR__ . '/lib/wp-routes/bootstrap.php';
+require_once __DIR__ . '/vendor/wordpress-routes/bootstrap.php';
 ```
 
-### 2. Create routes.php (Auto-loaded!)
+### 2. Auto-Scaffolding System
 
-**Theme**: Create `theme/routes.php`
-**Plugin**: Create `plugin/routes.php`
+WordPress Routes **automatically creates** a `/routes` directory with organized route files on first run:
+
+**Theme**: `wp-content/themes/your-theme/routes/`
+**Plugin**: `wp-content/plugins/your-plugin/routes/`
+
+The following files are auto-generated from templates with variable replacement:
+- `routes/api.php` - REST API endpoints
+- `routes/web.php` - Frontend pages  
+- `routes/auth.php` - Authentication routes
+
+Template variables replaced during scaffolding:
+- `{{THEME_NAME}}` - Your theme/plugin name
+- `{{NAMESPACE}}` - Your theme/plugin namespace
+
+### 3. Route Examples
 
 ```php
 <?php
+// routes/api.php - Auto-generated
 use WordPressRoutes\Routing\Route;
 
-// API Routes (REST API endpoints)
-Route::get('users', function($request) {
-    return get_users();
+// API Routes with groups
+Route::group(['prefix' => 'v1'], function() {
+    Route::get('posts', 'PostController@index');
+    Route::post('posts', 'PostController@store');
 });
 
-// Web Routes (frontend pages with templates)
-Route::web('about', function($request) {
-    return ['company' => 'My Company'];
-})->template('about.php');
+// routes/web.php - Auto-generated
+Route::web('about', function() {
+    get_header();
+    echo '<h1>About Us</h1>';
+    get_footer();
+})->title('About');
 
-// Admin Routes (dashboard pages)
+// routes/auth.php - Auto-generated
+Route::web('login', function() {
+    if (is_user_logged_in()) {
+        wp_redirect(home_url('/dashboard'));
+        exit();
+    }
+    // Show login form
+})->public();
+
+// Admin Routes (can be added to any route file)
 Route::admin('settings', 'App Settings', function($request) {
     return ['settings' => get_option('app_settings')];
 })->template('admin-settings.php');
 
-// AJAX Routes (WordPress AJAX handlers)
+// AJAX Routes (can be added to any route file)
 Route::ajax('save_data', function($request) {
     return ['saved' => true];
 })->auth();
 ```
 
-### 3. Create Templates (Optional)
+### 4. Create Templates (Optional)
 
 **Web template** (`theme/about.php`):
 ```php
@@ -86,7 +112,7 @@ $data = $GLOBALS['admin_route_data'] ?? [];
 </div>
 ```
 
-### 4. Access Your Routes
+### 5. Access Your Routes
 
 - **API**: `/wp-json/wp/v2/users`
 - **Web**: `https://yoursite.com/about`
@@ -95,12 +121,14 @@ $data = $GLOBALS['admin_route_data'] ?? [];
 
 ## Features
 
+- **🚀 Auto-Scaffolding**: Automatically creates `/routes` directory structure on first run
 - **🌐 4 Route Types**: API, Web, Admin, and AJAX routes in one unified system
 - **📄 Template Support**: Custom templates for Web and Admin routes with data binding  
 - **🎯 Laravel-style Syntax**: Familiar, elegant routing with method chaining
+- **📁 Route Groups**: Group routes with shared prefix, middleware, and namespace
 - **🛡️ Middleware Support**: Authentication, rate limiting, validation, CORS, and custom middleware
 - **📦 Plugin & Theme Modes**: Flexible template resolution for both deployment types
-- **🤖 Auto-loading**: Routes are automatically discovered and loaded
+- **🤖 Auto-loading**: Routes are automatically discovered and loaded from `/routes` directory
 - **🔧 CLI Tools**: Generate controllers and middleware with WP-CLI
 - **⚡ High Performance**: Optimized architecture with simplified web route handling
 - **🎨 PHP 8+ Features**: Modern PHP with union types, match expressions, and type declarations
@@ -111,15 +139,19 @@ $data = $GLOBALS['admin_route_data'] ?? [];
 WordPress Routes follows a clean architecture pattern:
 
 ```
-/lib/wp-routes/          # Library code (update-safe)
-├── src/                 # Core routing classes
-├── cli/                 # WP-CLI commands
-└── docs/                # Documentation
+/vendor/wordpress-routes/    # Library code (update-safe)
+├── src/                     # Core routing classes
+├── templates/               # Route file templates
+├── cli/                     # WP-CLI commands
+└── docs/                    # Documentation
 
-/your-app/               # User code (never touched by updates)
-├── controllers/         # Your API controllers
-├── middleware/          # Your custom middleware
-└── routes/              # Route definitions (optional)
+/your-theme-or-plugin/       # User code (auto-scaffolded)
+├── routes/                  # Route definitions (auto-created)
+│   ├── api.php             # API endpoints
+│   ├── web.php             # Frontend pages
+│   └── auth.php            # Authentication routes
+├── controllers/             # Your controllers (optional)
+└── middleware/              # Your custom middleware (optional)
 ```
 
 ## Template System
@@ -128,6 +160,7 @@ WordPress Routes provides powerful template support for Web and Admin routes:
 
 ### Web Routes
 ```php
+// Note: Web routes use exact path matching (no dynamic parameters)
 Route::web('portfolio', function($request) {
     return ['projects' => get_posts(['post_type' => 'project'])];
 })->template('portfolio.php')->title('My Portfolio');
@@ -153,14 +186,14 @@ Configure deployment mode for flexible template resolution:
 ```php
 define('WPROUTES_MODE', 'theme');
 // Templates: theme/template.php
-// Routes: theme/routes.php
+// Routes: theme/routes/*.php (auto-scaffolded)
 ```
 
 ### Plugin Mode
 ```php  
 define('WPROUTES_MODE', 'plugin');
 // Templates: plugin/templates/template.php  
-// Routes: plugin/routes.php
+// Routes: plugin/routes/*.php (auto-scaffolded)
 ```
 
 ## Requirements

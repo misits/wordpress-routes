@@ -29,41 +29,55 @@ define("WPROUTES_MODE", "theme");
 require_once get_template_directory() . "/vendor/wordpress-routes/bootstrap.php";
 ```
 
-### 3. Create Your Routes File
+### 3. Auto-Scaffolding (Automatic)
 
-Create a `routes.php` file in your theme root:
+WordPress Routes **automatically creates** your route files on first run. No manual setup needed!
+
+On first initialization, these files will be auto-generated:
 
 ```php
-<?php
-// /wp-content/themes/your-theme/routes.php
-defined("ABSPATH") or exit();
-
+// routes/api.php - Auto-created
 use WordPressRoutes\Routing\Route;
 
-// Your API routes
-Route::get('health', function($request) {
-    return ['status' => 'ok'];
+// API Routes with groups
+Route::group(['prefix' => 'v1'], function() {
+    Route::get('posts', 'PostController@index');
 });
 
-route_resource('posts', 'PostController');
+// routes/web.php - Auto-created
+Route::web('about', function() {
+    get_header();
+    echo '<h1>About Your Theme</h1>';
+    get_footer();
+})->title('About Us');
+
+// routes/auth.php - Auto-created
+Route::web('login', function() {
+    if (is_user_logged_in()) {
+        wp_redirect(home_url('/dashboard'));
+        exit();
+    }
+    // Login form logic
+})->public();
 ```
 
-### 4. Directory Structure
+### 4. Directory Structure (Auto-Created)
 
-WordPress Routes will automatically use these directories:
+WordPress Routes automatically creates and uses these directories:
 
 ```
 /wp-content/themes/your-theme/
-├── routes.php             #  Auto-loaded routes
-├── controllers/           # Your API controllers
-├── middleware/           # Your custom middleware
-└── api/
-    ├── routes.php        # Alternative routes location
-    ├── controllers/      # Alternative controller location
-    └── middleware/       # Alternative middleware location
+├── routes/               # Auto-created route directory
+│   ├── api.php          # REST API endpoints (auto-scaffolded)
+│   ├── web.php          # Frontend pages (auto-scaffolded)
+│   └── auth.php         # Authentication routes (auto-scaffolded)
+├── controllers/         # Your API controllers (optional)
+├── middleware/          # Your custom middleware (optional)
+└── vendor/
+    └── wordpress-routes/ # Library files
 ```
 
-**That's it!** Your routes are automatically loaded. No manual configuration required.
+**That's it!** Your route files are automatically scaffolded and loaded. No manual configuration required.
 
 ## Plugin Installation
 
@@ -101,32 +115,37 @@ define("WPROUTES_MODE", "plugin");
 require_once __DIR__ . '/vendor/wordpress-routes/bootstrap.php';
 ```
 
-### 3. Directory Structure
+### 3. Directory Structure (Auto-Created)
 
-WordPress Routes will automatically create and use these directories:
+WordPress Routes automatically creates and uses these directories:
 
 ```
 /wp-content/plugins/your-plugin/
-├── src/
-│   ├── Controllers/       # Your API controllers (primary)
-│   └── Middleware/        # Your custom middleware (primary)
-├── controllers/           # Alternative controller location
-├── middleware/            # Alternative middleware location
-└── ...
+├── routes/               # Auto-created route directory
+│   ├── api.php          # REST API endpoints (auto-scaffolded)
+│   ├── web.php          # Frontend pages (auto-scaffolded)
+│   └── auth.php         # Authentication routes (auto-scaffolded)
+├── controllers/         # Your API controllers (optional)
+├── middleware/          # Your custom middleware (optional)
+└── vendor/
+    └── wordpress-routes/ # Library files
 ```
 
-## Manual Installation
+## Custom Configuration
 
-If you prefer manual setup, you can specify custom paths:
+The auto-scaffolding system can be customized:
 
 ```php
-// Custom controller paths
+// Disable auto-scaffolding (routes directory must exist)
+define('WPROUTES_AUTO_SCAFFOLD', false);
+
+// Custom controller paths (optional)
 wroutes_add_controller_path('/custom/path/to/controllers', 'MyApp\\Controllers');
 
-// Or use constants
-define('WPROUTES_CONTROLLER_PATHS', [
-    '/custom/path/controllers',
-    '/another/path/controllers'
+// Custom route file locations (if not using auto-scaffolding)
+define('WPROUTES_CUSTOM_ROUTES', [
+    '/custom/path/routes.php',
+    '/another/path/api-routes.php'
 ]);
 ```
 

@@ -1,0 +1,29 @@
+<?php
+/**
+ * API Routes for {{THEME_NAME}}
+ */
+
+use WordPressRoutes\Routing\Route;
+use WordPressRoutes\Routing\RouteManager;
+
+// Set API namespace
+RouteManager::setNamespace('{{NAMESPACE}}');
+
+// Public routes
+Route::get('hello', function() {
+    return ['message' => 'Hello from {{THEME_NAME}}!'];
+})->public()->cors();
+
+// Protected routes
+Route::group(['middleware' => ['auth']], function() {
+    Route::get('profile', function() {
+        return ['user' => wp_get_current_user()->display_name];
+    });
+});
+
+// Admin routes
+Route::group(['middleware' => ['capability:manage_options']], function() {
+    Route::get('stats', function() {
+        return ['users' => count_users()['total_users']];
+    });
+});

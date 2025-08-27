@@ -165,6 +165,9 @@ function wproutes_auto_load_routes()
     if ($loaded) {
         return;
     }
+    
+    // Auto-scaffold routes if they don't exist
+    wproutes_scaffold_routes();
 
     $mode = defined("WPROUTES_MODE")
         ? WPROUTES_MODE
@@ -201,31 +204,58 @@ function wproutes_auto_load_routes()
 
         case "theme":
         default:
-            // Theme mode: Look for routes.php in theme directories
+            // Theme mode: Look for organized routes directory structure
             if (function_exists("get_template_directory")) {
-                $routes_files = [
-                    get_template_directory() . "/routes.php",
-                    get_template_directory() . "/routes/api.php",
-                    get_template_directory() . "/api/routes.php",
-                ];
+                $theme_dir = get_template_directory();
+                
+                // Check for routes directory with organized files
+                $routes_dir = $theme_dir . "/routes";
+                if (is_dir($routes_dir)) {
+                    $routes_files = [
+                        $routes_dir . "/api.php",
+                        $routes_dir . "/web.php", 
+                        $routes_dir . "/auth.php",
+                    ];
+                } else {
+                    // Fallback to old structure for backward compatibility
+                    $routes_files = [
+                        $theme_dir . "/routes.php",
+                        $theme_dir . "/routes/api.php",
+                        $theme_dir . "/api/routes.php",
+                    ];
+                }
 
                 // Add child theme paths if exists
                 if (
                     function_exists("get_stylesheet_directory") &&
                     get_template_directory() !== get_stylesheet_directory()
                 ) {
-                    array_unshift(
-                        $routes_files,
-                        get_stylesheet_directory() . "/routes.php",
-                        get_stylesheet_directory() . "/routes/api.php",
-                        get_stylesheet_directory() . "/api/routes.php",
-                    );
+                    $child_dir = get_stylesheet_directory();
+                    $child_routes_dir = $child_dir . "/routes";
+                    
+                    if (is_dir($child_routes_dir)) {
+                        // Child theme has organized routes
+                        array_unshift(
+                            $routes_files,
+                            $child_routes_dir . "/api.php",
+                            $child_routes_dir . "/web.php",
+                            $child_routes_dir . "/auth.php",
+                        );
+                    } else {
+                        // Child theme fallback
+                        array_unshift(
+                            $routes_files,
+                            $child_dir . "/routes.php",
+                            $child_dir . "/routes/api.php",
+                            $child_dir . "/api/routes.php",
+                        );
+                    }
                 }
             }
             break;
     }
 
-    // Load the first found routes file
+    // Load all found routes files (for organized structure)
     foreach ($routes_files as $routes_file) {
         if (file_exists($routes_file)) {
             // Ensure all core classes are loaded before requiring routes
@@ -234,7 +264,6 @@ function wproutes_auto_load_routes()
             }
             require_once $routes_file;
             $loaded = true;
-            break;
         }
     }
 
@@ -244,6 +273,114 @@ function wproutes_auto_load_routes()
         error_log(
             "WordPress Routes: No routes file found. Attempted: {$attempted}",
         );
+    }
+}
+
+/**
+ * Load template with variable replacement (similar to wordpress-skin)
+ *
+ * @param string $template_name Template name (without .template extension)
+ * @param array $replacements Key-value pairs for template variables
+ * @return string Template content with variables replaced
+ */
+function wproutes_load_template($template_name, $replacements = [])
+{
+    $template_path = WPROUTES_DIR . "/templates/" . $template_name . ".template";
+
+    if (!file_exists($template_path)) {
+        return "";
+    }
+
+    $content = file_get_contents($template_path);
+
+    // Replace placeholders
+    foreach ($replacements as $key => $value) {
+        $content = str_replace("{{" . $key . "}}", $value, $content);
+    }
+
+    return $content;
+}
+
+/**
+ * Scaffold routes directory with template files
+ *
+ * @return void
+ */
+function wproutes_scaffold_routes()
+{
+    // Determine base directory based on mode
+    $mode = defined("WPROUTES_MODE")
+        ? WPROUTES_MODE
+        : (defined("WPORM_MODE")
+            ? WPORM_MODE
+            : "theme");
+
+    $base_dir = null;
+    $context_name = '';
+    
+    switch ($mode) {
+        case "plugin":
+            // Find plugin root directory
+            $backtrace = debug_backtrace();
+            foreach ($backtrace as $trace) {
+                if (
+                    isset($trace["file"]) &&
+                    strpos($trace["file"], "/wp-content/plugins/") !== false
+                ) {
+                    $plugin_file = $trace["file"];
+                    while (dirname($plugin_file) !== "/wp-content/plugins") {
+                        $plugin_file = dirname($plugin_file);
+                    }
+                    $base_dir = $plugin_file;
+                    $context_name = basename($plugin_file);
+                    break;
+                }
+            }
+            break;
+            
+        case "theme":
+        default:
+            $base_dir = get_stylesheet_directory();
+            $context_name = get_stylesheet();
+            break;
+    }
+    
+    if (!$base_dir || !$context_name) {
+        return;
+    }
+    
+    $routes_dir = $base_dir . "/routes";
+    
+    // Create routes directory if it doesn't exist
+    if (!is_dir($routes_dir)) {
+        wp_mkdir_p($routes_dir);
+    }
+    
+    // Prepare template variables
+    $template_vars = [
+        'THEME_NAME' => $context_name,
+        'THEME_SLUG' => $context_name,
+        'NAMESPACE' => sanitize_title($context_name) . '/v1'
+    ];
+    
+    // Template files to create
+    $template_files = [
+        'api.php' => 'api.php',
+        'web.php' => 'web.php', 
+        'auth.php' => 'auth.php'
+    ];
+    
+    // Create route files from templates if they don't exist
+    foreach ($template_files as $target_file => $template_name) {
+        $target_path = $routes_dir . "/" . $target_file;
+        
+        // Only create if target doesn't exist
+        if (!file_exists($target_path)) {
+            $template_content = wproutes_load_template($template_name, $template_vars);
+            if (!empty($template_content)) {
+                file_put_contents($target_path, $template_content);
+            }
+        }
     }
 }
 

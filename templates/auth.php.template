@@ -1,0 +1,37 @@
+<?php
+/**
+ * Authentication Routes for {{THEME_NAME}}
+ */
+
+use WordPressRoutes\Routing\Route;
+
+// Login page
+Route::web('login', function() {
+    get_header();
+    echo '<h1>Login</h1>';
+    wp_login_form();
+    get_footer();
+})->public()->title('Login');
+
+// Dashboard
+Route::web('dashboard', function() {
+    $user = wp_get_current_user();
+    get_header();
+    echo '<h1>Welcome, ' . esc_html($user->display_name) . '!</h1>';
+    echo '<a href="' . wp_logout_url() . '">Logout</a>';
+    get_footer();
+})->middleware(['auth'])->title('Dashboard');
+
+// AJAX login
+Route::ajax('login', function() {
+    $user = wp_signon([
+        'user_login' => $_POST['username'],
+        'user_password' => $_POST['password']
+    ]);
+    
+    if (is_wp_error($user)) {
+        wp_send_json_error($user->get_error_message());
+    }
+    
+    wp_send_json_success(['redirect' => home_url('/dashboard')]);
+})->public();

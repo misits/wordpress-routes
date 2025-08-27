@@ -70,7 +70,20 @@ class VirtualPage
      */
     public function process(): void
     {
+        // Hook very early to prevent header conflicts
+        add_action('send_headers', [$this, 'setCustomHeaders'], 1);
         add_action('template_redirect', [$this, 'createPage'], 1);
+    }
+    
+    /**
+     * Set custom headers early
+     */
+    public function setCustomHeaders(): void
+    {
+        if (!headers_sent()) {
+            status_header(200);
+            header('Content-Type: text/html; charset=' . get_bloginfo('charset'));
+        }
     }
 
     /**
@@ -79,17 +92,6 @@ class VirtualPage
     public function createPage(): void
     {
         global $wp, $wp_query;
-
-        // Execute callback to get data if provided
-        $response = null;
-        if (is_callable($this->callback)) {
-            $response = call_user_func($this->callback);
-        }
-
-        // Store response data globally
-        if (is_array($response)) {
-            $GLOBALS['route_data'] = $response;
-        }
 
         // Create virtual post
         $this->createPostInstance();
@@ -100,8 +102,23 @@ class VirtualPage
         // Set up custom template if provided
         $this->setupCustomTemplate();
 
-        // Set 200 status header
-        status_header(200);
+        // Execute callback to get data if provided
+        $response = null;
+        if (is_callable($this->callback)) {
+            // Suppress header warnings - WordPress will try to set headers after content starts
+            $old_error_reporting = error_reporting();
+            error_reporting($old_error_reporting & ~E_WARNING);
+            
+            $response = call_user_func($this->callback);
+            
+            // Restore error reporting
+            error_reporting($old_error_reporting);
+        }
+
+        // Store response data globally
+        if (is_array($response)) {
+            $GLOBALS['route_data'] = $response;
+        }
     }
 
     /**

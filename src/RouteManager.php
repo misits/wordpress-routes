@@ -266,6 +266,16 @@ class RouteManager
     }
 
     /**
+     * Get current group attributes (public access for Route class)
+     *
+     * @return array
+     */
+    public static function getCurrentGroupAttributes()
+    {
+        return self::mergeGroupAttributes();
+    }
+
+    /**
      * Merge group attributes from stack
      *
      * @return array

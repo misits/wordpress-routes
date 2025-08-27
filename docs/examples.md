@@ -9,11 +9,10 @@ This document provides comprehensive examples of using WordPress Routes in real-
 ```php
 // functions.php (Theme) or main plugin file
 define("WPROUTES_MODE", "theme"); // or "plugin"
-require_once get_template_directory() . "/lib/wp-routes/bootstrap.php";
+require_once get_template_directory() . "/vendor/wordpress-routes/bootstrap.php";
 
-add_action('rest_api_init', function() {
-    \WordPressRoutes\Routing\Route::setNamespace('myapp/v1');
-});
+// Routes are auto-scaffolded in /routes directory
+// No manual setup needed - routes/api.php, routes/web.php, routes/auth.php created automatically
 ```
 
 ### 2. Create Controller
@@ -25,10 +24,16 @@ wp routes:make-controller PostController --api --resource
 ### 3. Define Routes
 
 ```php
-// functions.php
-add_action('rest_api_init', function() {
-    \WordPressRoutes\Routing\Route::setNamespace('myapp/v1');
-    \WordPressRoutes\Routing\Route::resource('posts', 'PostController');
+// routes/api.php (auto-generated)
+use WordPressRoutes\Routing\Route;
+
+// API Routes with groups
+Route::group(['prefix' => 'v1'], function() {
+    Route::get('posts', 'PostController@index');
+    Route::post('posts', 'PostController@store');
+    Route::get('posts/{id}', 'PostController@show');
+    Route::put('posts/{id}', 'PostController@update');
+    Route::delete('posts/{id}', 'PostController@destroy');
 });
 ```
 
@@ -36,10 +41,10 @@ add_action('rest_api_init', function() {
 
 ```bash
 # List posts
-curl -X GET "https://yoursite.com/wp-json/myapp/v1/posts"
+curl -X GET "https://yoursite.com/wp-json/wp/v2/v1/posts"
 
 # Get specific post
-curl -X GET "https://yoursite.com/wp-json/myapp/v1/posts/123"
+curl -X GET "https://yoursite.com/wp-json/wp/v2/v1/posts/123"
 
 # Create post (authenticated)
 curl -X POST "https://yoursite.com/wp-json/myapp/v1/posts" \
