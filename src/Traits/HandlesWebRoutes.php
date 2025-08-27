@@ -63,7 +63,7 @@ trait HandlesWebRoutes
             ob_end_clean();
             
             // If callback returned content (like from wproutes_view), output and exit
-            if ($result !== null && !empty(trim($result))) {
+            if ($result !== null && is_string($result) && !empty(trim($result))) {
                 echo $result;
                 exit(); // Stop WordPress from continuing
             }

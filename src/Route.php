@@ -445,6 +445,12 @@ class Route
     {
         $this->name = $name;
         RouteManager::addNamedRoute($name, $this);
+        
+        // Auto-resolve template for web routes if not already set
+        if ($this->type === self::TYPE_WEB && empty($this->webSettings['template'])) {
+            $this->webSettings['template'] = $this->resolveTemplateFromName($name);
+        }
+        
         return $this;
     }
 
@@ -915,5 +921,21 @@ class Route
         }
         $this->middleware[] = 'ip:' . $ips;
         return $this;
+    }
+    
+    /**
+     * Resolve template path from route name
+     * Converts 'pages.contact' to 'resources/views/pages/contact.php'
+     *
+     * @param string $name Route name
+     * @return string Template path
+     */
+    protected function resolveTemplateFromName(string $name): string
+    {
+        // Convert dot notation to directory structure
+        $templatePath = str_replace('.', '/', $name);
+        
+        // Prepend resources/views and auto-append .php
+        return 'resources/views/' . $templatePath . '.php';
     }
 }

@@ -232,9 +232,12 @@ class VirtualPage
      */
     private function findTemplate(string $template): ?string
     {
+        // Normalize template name (auto-append .php if missing)
+        $normalizedTemplate = $this->normalizeTemplateName($template);
+        
         // If it's an absolute path, use it directly
-        if (str_starts_with($template, '/') && file_exists($template)) {
-            return $template;
+        if (str_starts_with($normalizedTemplate, '/') && file_exists($normalizedTemplate)) {
+            return $normalizedTemplate;
         }
         
         $mode = defined("WPROUTES_MODE")
@@ -244,11 +247,11 @@ class VirtualPage
                 : "theme");
                 
         if ($mode === "plugin") {
-            return $this->findPluginTemplate($template);
+            return $this->findPluginTemplate($normalizedTemplate);
         }
         
         // Theme mode (default)
-        return $this->findThemeTemplate($template);
+        return $this->findThemeTemplate($normalizedTemplate);
     }
     
     /**
@@ -294,32 +297,33 @@ class VirtualPage
      */
     private function findThemeTemplate(string $template): ?string
     {
-        // If template contains a path, use it directly from theme root
+        // Priority 1: Check if template contains path, use directly from theme root
         if (str_contains($template, '/')) {
-            $themeTemplate = get_template_directory() . '/' . $template;
-            if (file_exists($themeTemplate)) {
-                return $themeTemplate;
-            }
-            
-            // Child theme check
+            // Child theme first
             if (get_template_directory() !== get_stylesheet_directory()) {
                 $childTemplate = get_stylesheet_directory() . '/' . $template;
                 if (file_exists($childTemplate)) {
                     return $childTemplate;
                 }
             }
-        }
-        
-        // Use WordPress's locate_template for simple filenames
-        $templatePath = locate_template($template);
-        if ($templatePath) {
-            return $templatePath;
-        }
-        
-        // Final fallback: check theme root
-        $themeTemplate = get_template_directory() . '/' . $template;
-        if (file_exists($themeTemplate)) {
-            return $themeTemplate;
+            
+            // Parent theme
+            $themeTemplate = get_template_directory() . '/' . $template;
+            if (file_exists($themeTemplate)) {
+                return $themeTemplate;
+            }
+        } else {
+            // Priority 2: Use WordPress's locate_template for simple filenames
+            $templatePath = locate_template($template);
+            if ($templatePath) {
+                return $templatePath;
+            }
+            
+            // Priority 3: Check theme root directly  
+            $themeTemplate = get_template_directory() . '/' . $template;
+            if (file_exists($themeTemplate)) {
+                return $themeTemplate;
+            }
         }
         
         return null;
@@ -348,5 +352,19 @@ class VirtualPage
         }
         
         return null;
+    }
+    
+    /**
+     * Normalize template name - auto-append .php extension if missing
+     */
+    private function normalizeTemplateName(string $template): string
+    {
+        // If template already has .php extension, return as-is
+        if (str_ends_with(strtolower($template), '.php')) {
+            return $template;
+        }
+        
+        // Auto-append .php extension
+        return $template . '.php';
     }
 }

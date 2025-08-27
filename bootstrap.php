@@ -753,9 +753,88 @@ if (!function_exists("controller")) {
 }
 
 /**
+ * Normalize template name - auto-append .php extension if missing
+ *
+ * @param string $template Template name
+ * @return string Normalized template name with .php extension
+ */
+function wproutes_normalize_template_name($template) {
+    // If template already has .php extension, return as-is
+    if (str_ends_with(strtolower($template), '.php')) {
+        return $template;
+    }
+    
+    // Auto-append .php extension
+    return $template . '.php';
+}
+
+/**
+ * Find view template with same logic as route template resolution
+ * Searches in resources/views first, then fallback to theme root
+ *
+ * @param string $template Template name (with or without .php extension)
+ * @return string|null Full path to template file, or null if not found
+ */
+function wproutes_find_view_template($template) {
+    // Normalize template name (auto-append .php if missing)
+    $normalizedTemplate = wproutes_normalize_template_name($template);
+    
+    // If it's an absolute path, use it directly
+    if (str_starts_with($normalizedTemplate, '/') && file_exists($normalizedTemplate)) {
+        return $normalizedTemplate;
+    }
+    
+    // Search locations in priority order
+    $searchPaths = [];
+    
+    // Child theme paths (if different from parent)
+    if (get_template_directory() !== get_stylesheet_directory()) {
+        $childDir = get_stylesheet_directory();
+        
+        if (str_contains($normalizedTemplate, '/')) {
+            // Template has path - search directly and in resources/views
+            $searchPaths[] = $childDir . '/' . $normalizedTemplate;
+            $searchPaths[] = $childDir . '/resources/views/' . $normalizedTemplate;
+        } else {
+            // Simple filename - prioritize resources/views
+            $searchPaths[] = $childDir . '/resources/views/' . $normalizedTemplate;
+            $searchPaths[] = $childDir . '/' . $normalizedTemplate;
+        }
+    }
+    
+    // Parent theme paths
+    $parentDir = get_template_directory();
+    
+    if (str_contains($normalizedTemplate, '/')) {
+        // Template has path - search directly and in resources/views
+        $searchPaths[] = $parentDir . '/' . $normalizedTemplate;
+        $searchPaths[] = $parentDir . '/resources/views/' . $normalizedTemplate;
+    } else {
+        // Simple filename - prioritize resources/views
+        $searchPaths[] = $parentDir . '/resources/views/' . $normalizedTemplate;
+        $searchPaths[] = $parentDir . '/' . $normalizedTemplate;
+    }
+    
+    // Try WordPress's locate_template as fallback
+    $wpTemplate = locate_template($normalizedTemplate);
+    if ($wpTemplate) {
+        $searchPaths[] = $wpTemplate;
+    }
+    
+    // Return first existing template
+    foreach ($searchPaths as $path) {
+        if (file_exists($path)) {
+            return $path;
+        }
+    }
+    
+    return null;
+}
+
+/**
  * Laravel-style view helper for WordPress routes
  *
- * @param string $template Template name (without .php extension)
+ * @param string $template Template name (with or without .php extension)
  * @param array $data Data to pass to the template
  * @return string Rendered template content
  */
@@ -769,9 +848,10 @@ function wproutes_view($template, $data = []) {
     // Include WordPress header
     get_header();
     
-    // Check if template exists and include it
-    $template_path = get_template_directory() . '/' . $template . '.php';
-    if (file_exists($template_path)) {
+    // Find the template using the same logic as routes
+    $template_path = wproutes_find_view_template($template);
+    
+    if ($template_path && file_exists($template_path)) {
         include $template_path;
     } else {
         echo '<div class="error">Template not found: ' . esc_html($template) . '</div>';
