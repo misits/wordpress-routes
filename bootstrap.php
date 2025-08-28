@@ -845,7 +845,7 @@ function wproutes_find_view_template($template) {
  * @param array $data Data to pass to the template
  * @return string Rendered template content
  */
-function wproutes_view($template, $data = []) {
+function view($template, $data = []) {
     // Extract variables to make them available in the template
     extract($data);
     
@@ -872,6 +872,70 @@ function wproutes_view($template, $data = []) {
     
     // Return the content
     return $content;
+}
+
+/**
+ * Backward compatibility alias for view()
+ *
+ * @param string $template Template name (with or without .php extension)
+ * @param array $data Data to pass to the template
+ * @return string Rendered template content
+ */
+function wproutes_view($template, $data = []) {
+    return view($template, $data);
+}
+
+/**
+ * Helper function to generate API route URLs
+ *
+ * @param string $endpoint The API endpoint (e.g., 'auth/login')
+ * @param string|null $namespace Optional namespace override (defaults to current namespace)
+ * @return string The full API URL
+ */
+function wproutes_api_url($endpoint, $namespace = null)
+{
+    // Get the current namespace or use provided one
+    if ($namespace === null) {
+        $namespace = \WordPressRoutes\Routing\RouteManager::getNamespace();
+    }
+    
+    // Build the full path
+    $path = trim($namespace, '/') . '/' . ltrim($endpoint, '/');
+    
+    // Use rest_url which respects the rest_url_prefix filter
+    return rest_url($path);
+}
+
+/**
+ * Helper function to get just the API base URL
+ *
+ * @return string The API base URL
+ */
+function wproutes_api_base()
+{
+    return rest_url();
+}
+
+/**
+ * Helper function to get the REST API prefix (e.g., 'api' or 'wp-json')
+ *
+ * @return string The REST API prefix
+ */
+function wproutes_api_prefix()
+{
+    return rest_get_url_prefix();
+}
+
+/**
+ * Helper function to generate URL from route name
+ *
+ * @param string $name The route name
+ * @param array $params Optional parameters for the route
+ * @return string|null The full URL or null if route not found
+ */
+function route($name, array $params = [])
+{
+    return \WordPressRoutes\Routing\RouteManager::url($name, $params);
 }
 
 // Register WP-CLI commands after WordPress is initialized
