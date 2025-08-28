@@ -6,6 +6,9 @@
 use WordPressRoutes\Routing\Route;
 use WordPressRoutes\Routing\RouteManager;
 
+// Set custom API prefix (changes from wp-json to api)
+RouteManager::setApiPrefix("api");
+
 // Set API namespace
 RouteManager::setNamespace('{{NAMESPACE}}');
 

@@ -29,6 +29,13 @@ class RouteManager
     protected static $defaultNamespace = 'wp/v2';
 
     /**
+     * Custom REST API prefix
+     *
+     * @var string|null
+     */
+    protected static $restUrlPrefix = null;
+
+    /**
      * Global middleware
      *
      * @var array
@@ -58,6 +65,11 @@ class RouteManager
         // Initialize middleware registry
         MiddlewareRegistry::init();
         
+        // Set up REST URL prefix filter if custom prefix is set
+        if (self::$restUrlPrefix !== null) {
+            add_filter('rest_url_prefix', [__CLASS__, 'getRestUrlPrefix']);
+        }
+        
         self::init();
     }
 
@@ -79,6 +91,31 @@ class RouteManager
     public static function getNamespace()
     {
         return self::$defaultNamespace;
+    }
+
+    /**
+     * Set the REST API prefix
+     *
+     * @param string $prefix
+     */
+    public static function setApiPrefix($prefix)
+    {
+        self::$restUrlPrefix = $prefix;
+        
+        // Add filter immediately if WordPress is loaded
+        if (did_action('init')) {
+            add_filter('rest_url_prefix', [__CLASS__, 'getRestUrlPrefix']);
+        }
+    }
+
+    /**
+     * Get the REST API prefix
+     *
+     * @return string
+     */
+    public static function getRestUrlPrefix()
+    {
+        return self::$restUrlPrefix ?: 'wp-json';
     }
 
     /**
@@ -386,6 +423,7 @@ class RouteManager
         self::$namedRoutes = [];
         self::$groupStack = [];
         self::$globalMiddleware = [];
+        self::$restUrlPrefix = null;
     }
 
     /**

@@ -528,7 +528,7 @@ class {$name}{$extendsLine}
         $callback = $this->getCallbackString($route);
 
         foreach ($methods as $method) {
-            $path = "/wp-json/{$namespace}/{$endpoint}";
+            $path = "/" . rest_get_url_prefix() . "/{$namespace}/{$endpoint}";
             \WP_CLI::line(
                 sprintf(
                     "  %-6s %-50s %s",
