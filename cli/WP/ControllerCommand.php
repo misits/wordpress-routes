@@ -60,7 +60,13 @@ class ControllerCommand extends \WP_CLI_Command
         $path = $assoc_args["path"] ?? $defaultPath;
         $isApi = isset($assoc_args["api"]);
         $isResource = isset($assoc_args["resource"]);
-        $namespace = $assoc_args["namespace"] ?? null;
+
+        // Set default namespace for app/Controllers structure
+        $defaultNamespace =
+            strpos($defaultPath, "/app/Controllers") !== false
+                ? "App\\Controllers"
+                : null;
+        $namespace = $assoc_args["namespace"] ?? $defaultNamespace;
 
         try {
             $this->createController(
@@ -195,7 +201,7 @@ class {$name}{$extendsLine}
      * Handle the request
      *
      * @param RouteRequest $request
-     * @return WP_REST_Response
+     * @return \WP_REST_Response
      */
     public function handle(RouteRequest $request)
     {
@@ -226,7 +232,7 @@ class {$name}{$extendsLine}
      * Display a listing of the resource
      *
      * @param RouteRequest $request
-     * @return WP_REST_Response
+     * @return \WP_REST_Response
      */
     public function index(RouteRequest $request)
     {
@@ -238,7 +244,7 @@ class {$name}{$extendsLine}
      * Store a newly created resource
      *
      * @param RouteRequest $request
-     * @return WP_REST_Response
+     * @return \WP_REST_Response
      */
     public function store(RouteRequest $request)
     {
@@ -250,7 +256,7 @@ class {$name}{$extendsLine}
      * Display the specified resource
      *
      * @param RouteRequest $request
-     * @return WP_REST_Response
+     * @return \WP_REST_Response
      */
     public function show(RouteRequest $request)
     {
@@ -264,7 +270,7 @@ class {$name}{$extendsLine}
      * Update the specified resource
      *
      * @param RouteRequest $request
-     * @return WP_REST_Response
+     * @return \WP_REST_Response
      */
     public function update(RouteRequest $request)
     {
@@ -278,7 +284,7 @@ class {$name}{$extendsLine}
      * Remove the specified resource
      *
      * @param RouteRequest $request
-     * @return WP_REST_Response
+     * @return \WP_REST_Response
      */
     public function destroy(RouteRequest $request)
     {

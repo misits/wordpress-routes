@@ -65,12 +65,14 @@ if (
 
         case "theme":
         default:
-            // Theme mode: Use theme directory structure
+            // Theme mode: Use app directory structure
             if (function_exists("get_template_directory")) {
-                $controllerPaths[] = get_template_directory() . "/controllers";
+                $controllerPaths[] = get_template_directory() . "/app/Controllers";
+                $controllerPaths[] = get_template_directory() . "/controllers"; // Backward compatibility
                 $controllerPaths[] =
                     get_template_directory() . "/api/controllers";
-                $middlewarePaths[] = get_template_directory() . "/middleware";
+                $middlewarePaths[] = get_template_directory() . "/app/Middleware";
+                $middlewarePaths[] = get_template_directory() . "/middleware"; // Backward compatibility
                 $middlewarePaths[] =
                     get_template_directory() . "/api/middleware";
             }
@@ -81,9 +83,12 @@ if (
                 get_template_directory() !== get_stylesheet_directory()
             ) {
                 $controllerPaths[] =
+                    get_stylesheet_directory() . "/app/Controllers";
+                $controllerPaths[] =
                     get_stylesheet_directory() . "/controllers";
                 $controllerPaths[] =
                     get_stylesheet_directory() . "/api/controllers";
+                $middlewarePaths[] = get_stylesheet_directory() . "/app/Middleware";
                 $middlewarePaths[] = get_stylesheet_directory() . "/middleware";
                 $middlewarePaths[] =
                     get_stylesheet_directory() . "/api/middleware";
@@ -620,9 +625,9 @@ function wproutes_get_default_path($type = "controllers")
 
             switch ($type) {
                 case "controllers":
-                    return $themeDir . "/controllers";
+                    return $themeDir . "/app/Controllers";
                 case "middleware":
-                    return $themeDir . "/middleware";
+                    return $themeDir . "/app/Middleware";
             }
             break;
     }
@@ -699,9 +704,10 @@ function wproutes_get_controller_paths()
 
         case "theme":
         default:
-            // Theme mode: Use theme directory structure
+            // Theme mode: Use app directory structure (with backward compatibility)
             if (function_exists("get_template_directory")) {
-                $paths[] = get_template_directory() . "/controllers";
+                $paths[] = get_template_directory() . "/app/Controllers";
+                $paths[] = get_template_directory() . "/controllers"; // Backward compatibility
                 $paths[] = get_template_directory() . "/api/controllers";
             }
 
@@ -710,6 +716,7 @@ function wproutes_get_controller_paths()
                 function_exists("get_stylesheet_directory") &&
                 get_template_directory() !== get_stylesheet_directory()
             ) {
+                $paths[] = get_stylesheet_directory() . "/app/Controllers";
                 $paths[] = get_stylesheet_directory() . "/controllers";
                 $paths[] = get_stylesheet_directory() . "/api/controllers";
             }

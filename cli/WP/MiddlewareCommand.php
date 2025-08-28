@@ -109,11 +109,11 @@ class {$name} implements MiddlewareInterface
     /**
      * Handle the middleware
      *
-     * @param WP_REST_Request \$request
+     * @param \WP_REST_Request \$request
      * @param callable \$next
-     * @return WP_REST_Response|mixed
+     * @return \WP_REST_Response|mixed
      */
-    public function handle(WP_REST_Request \$request, callable \$next)
+    public function handle(\WP_REST_Request \$request, callable \$next)
     {
         // Pre-processing logic here
         // Example: Authentication, rate limiting, logging, etc.
@@ -138,10 +138,10 @@ class {$name} implements MiddlewareInterface
     /**
      * Check middleware condition
      *
-     * @param WP_REST_Request \$request
+     * @param \WP_REST_Request \$request
      * @return bool
      */
-    protected function checkCondition(WP_REST_Request \$request): bool
+    protected function checkCondition(\WP_REST_Request \$request): bool
     {
         // Implement your middleware logic here
         // Return true to continue, false to block
