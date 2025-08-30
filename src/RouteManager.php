@@ -399,15 +399,32 @@ class RouteManager
     {
         foreach (self::$routes as $route) {
             if ($route->getName() === $name) {
-                $url = rest_url($route->getNamespace() . '/' . $route->getEndpoint());
+                // Generate URL based on route type
+                $endpoint = $route->getEndpoint();
                 
-                // Replace parameters
+                // Replace parameters in endpoint
                 foreach ($params as $key => $value) {
-                    $url = str_replace('{' . $key . '}', $value, $url);
-                    $url = preg_replace('/\(\?\P<' . $key . '>[^)]+\)/', $value, $url);
+                    $endpoint = str_replace('{' . $key . '}', $value, $endpoint);
+                    $endpoint = preg_replace('/\(\?\P<' . $key . '>[^)]+\)/', $value, $endpoint);
                 }
                 
-                return $url;
+                // Generate appropriate URL based on route type
+                switch ($route->getType()) {
+                    case 'web':
+                    case 'admin':
+                        // Web routes use home_url() for regular WordPress URLs
+                        return home_url('/' . ltrim($endpoint, '/'));
+                        
+                    case 'ajax':
+                        // AJAX routes use admin_url() with admin-ajax.php
+                        return admin_url('admin-ajax.php?action=' . $endpoint);
+                        
+                    case 'api':
+                    case 'webhook':
+                    default:
+                        // API routes use rest_url() for REST API endpoints
+                        return rest_url($route->getNamespace() . '/' . $endpoint);
+                }
             }
         }
         

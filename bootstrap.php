@@ -67,11 +67,13 @@ if (
         default:
             // Theme mode: Use app directory structure
             if (function_exists("get_template_directory")) {
-                $controllerPaths[] = get_template_directory() . "/app/Controllers";
+                $controllerPaths[] =
+                    get_template_directory() . "/app/Controllers";
                 $controllerPaths[] = get_template_directory() . "/controllers"; // Backward compatibility
                 $controllerPaths[] =
                     get_template_directory() . "/api/controllers";
-                $middlewarePaths[] = get_template_directory() . "/app/Middleware";
+                $middlewarePaths[] =
+                    get_template_directory() . "/app/Middleware";
                 $middlewarePaths[] = get_template_directory() . "/middleware"; // Backward compatibility
                 $middlewarePaths[] =
                     get_template_directory() . "/api/middleware";
@@ -88,7 +90,8 @@ if (
                     get_stylesheet_directory() . "/controllers";
                 $controllerPaths[] =
                     get_stylesheet_directory() . "/api/controllers";
-                $middlewarePaths[] = get_stylesheet_directory() . "/app/Middleware";
+                $middlewarePaths[] =
+                    get_stylesheet_directory() . "/app/Middleware";
                 $middlewarePaths[] = get_stylesheet_directory() . "/middleware";
                 $middlewarePaths[] =
                     get_stylesheet_directory() . "/api/middleware";
@@ -111,7 +114,7 @@ require_once WPROUTES_SRC_DIR . "/Autoloader.php";
 // Register autoloader first
 \WordPressRoutes\Routing\Autoloader::register();
 
-// Then load core components explicitly 
+// Then load core components explicitly
 \WordPressRoutes\Routing\Autoloader::loadCore();
 
 // Register controller autoloader
@@ -173,7 +176,7 @@ function wproutes_auto_load_routes()
     if ($loaded) {
         return;
     }
-    
+
     // Auto-scaffold routes if they don't exist
     wproutes_scaffold_routes();
 
@@ -215,7 +218,7 @@ function wproutes_auto_load_routes()
             // Theme mode: Look for organized routes directory structure
             if (function_exists("get_template_directory")) {
                 $theme_dir = get_template_directory();
-                
+
                 // Check for routes directory with organized files
                 $routes_dir = $theme_dir . "/routes";
                 if (is_dir($routes_dir)) {
@@ -240,7 +243,7 @@ function wproutes_auto_load_routes()
                 ) {
                     $child_dir = get_stylesheet_directory();
                     $child_routes_dir = $child_dir . "/routes";
-                    
+
                     if (is_dir($child_routes_dir)) {
                         // Child theme has organized routes
                         array_unshift(
@@ -267,7 +270,7 @@ function wproutes_auto_load_routes()
     foreach ($routes_files as $routes_file) {
         if (file_exists($routes_file)) {
             // Ensure all core classes are loaded before requiring routes
-            if (!class_exists('\WordPressRoutes\Routing\Route')) {
+            if (!class_exists("\WordPressRoutes\Routing\Route")) {
                 \WordPressRoutes\Routing\Autoloader::loadCore();
             }
             require_once $routes_file;
@@ -293,7 +296,8 @@ function wproutes_auto_load_routes()
  */
 function wproutes_load_template($template_name, $replacements = [])
 {
-    $template_path = WPROUTES_DIR . "/templates/" . $template_name . ".template";
+    $template_path =
+        WPROUTES_DIR . "/templates/" . $template_name . ".template";
 
     if (!file_exists($template_path)) {
         return "";
@@ -324,8 +328,8 @@ function wproutes_scaffold_routes()
             : "theme");
 
     $base_dir = null;
-    $context_name = '';
-    
+    $context_name = "";
+
     switch ($mode) {
         case "plugin":
             // Find plugin root directory
@@ -345,47 +349,50 @@ function wproutes_scaffold_routes()
                 }
             }
             break;
-            
+
         case "theme":
         default:
             $base_dir = get_stylesheet_directory();
             $context_name = get_stylesheet();
             break;
     }
-    
+
     if (!$base_dir || !$context_name) {
         return;
     }
-    
+
     $routes_dir = $base_dir . "/routes";
-    
+
     // Create routes directory if it doesn't exist
     if (!is_dir($routes_dir)) {
         wp_mkdir_p($routes_dir);
     }
-    
+
     // Prepare template variables
     $template_vars = [
-        'THEME_NAME' => $context_name,
-        'THEME_SLUG' => $context_name,
-        'NAMESPACE' => sanitize_title($context_name) . '/v1'
+        "THEME_NAME" => $context_name,
+        "THEME_SLUG" => $context_name,
+        "NAMESPACE" => sanitize_title($context_name) . "/v1",
     ];
-    
+
     // Template files to create
     $template_files = [
-        'api.php' => 'api.php',
-        'web.php' => 'web.php', 
-        'auth.php' => 'auth.php',
-        'webhooks.php' => 'webhooks.php'
+        "api.php" => "api.php",
+        "web.php" => "web.php",
+        "auth.php" => "auth.php",
+        "webhooks.php" => "webhooks.php",
     ];
-    
+
     // Create route files from templates if they don't exist
     foreach ($template_files as $target_file => $template_name) {
         $target_path = $routes_dir . "/" . $target_file;
-        
+
         // Only create if target doesn't exist
         if (!file_exists($target_path)) {
-            $template_content = wproutes_load_template($template_name, $template_vars);
+            $template_content = wproutes_load_template(
+                $template_name,
+                $template_vars,
+            );
             if (!empty($template_content)) {
                 file_put_contents($target_path, $template_content);
             }
@@ -765,14 +772,15 @@ if (!function_exists("controller")) {
  * @param string $template Template name
  * @return string Normalized template name with .php extension
  */
-function wproutes_normalize_template_name($template) {
+function wproutes_normalize_template_name($template)
+{
     // If template already has .php extension, return as-is
-    if (str_ends_with(strtolower($template), '.php')) {
+    if (str_ends_with(strtolower($template), ".php")) {
         return $template;
     }
-    
+
     // Auto-append .php extension
-    return $template . '.php';
+    return $template . ".php";
 }
 
 /**
@@ -782,59 +790,65 @@ function wproutes_normalize_template_name($template) {
  * @param string $template Template name (with or without .php extension)
  * @return string|null Full path to template file, or null if not found
  */
-function wproutes_find_view_template($template) {
+function wproutes_find_view_template($template)
+{
     // Normalize template name (auto-append .php if missing)
     $normalizedTemplate = wproutes_normalize_template_name($template);
-    
+
     // If it's an absolute path, use it directly
-    if (str_starts_with($normalizedTemplate, '/') && file_exists($normalizedTemplate)) {
+    if (
+        str_starts_with($normalizedTemplate, "/") &&
+        file_exists($normalizedTemplate)
+    ) {
         return $normalizedTemplate;
     }
-    
+
     // Search locations in priority order
     $searchPaths = [];
-    
+
     // Child theme paths (if different from parent)
     if (get_template_directory() !== get_stylesheet_directory()) {
         $childDir = get_stylesheet_directory();
-        
-        if (str_contains($normalizedTemplate, '/')) {
+
+        if (str_contains($normalizedTemplate, "/")) {
             // Template has path - search directly and in resources/views
-            $searchPaths[] = $childDir . '/' . $normalizedTemplate;
-            $searchPaths[] = $childDir . '/resources/views/' . $normalizedTemplate;
+            $searchPaths[] = $childDir . "/" . $normalizedTemplate;
+            $searchPaths[] =
+                $childDir . "/resources/views/" . $normalizedTemplate;
         } else {
             // Simple filename - prioritize resources/views
-            $searchPaths[] = $childDir . '/resources/views/' . $normalizedTemplate;
-            $searchPaths[] = $childDir . '/' . $normalizedTemplate;
+            $searchPaths[] =
+                $childDir . "/resources/views/" . $normalizedTemplate;
+            $searchPaths[] = $childDir . "/" . $normalizedTemplate;
         }
     }
-    
+
     // Parent theme paths
     $parentDir = get_template_directory();
-    
-    if (str_contains($normalizedTemplate, '/')) {
+
+    if (str_contains($normalizedTemplate, "/")) {
         // Template has path - search directly and in resources/views
-        $searchPaths[] = $parentDir . '/' . $normalizedTemplate;
-        $searchPaths[] = $parentDir . '/resources/views/' . $normalizedTemplate;
+        $searchPaths[] = $parentDir . "/" . $normalizedTemplate;
+        $searchPaths[] = $parentDir . "/resources/views/" . $normalizedTemplate;
     } else {
         // Simple filename - prioritize resources/views
-        $searchPaths[] = $parentDir . '/resources/views/' . $normalizedTemplate;
-        $searchPaths[] = $parentDir . '/' . $normalizedTemplate;
+        $searchPaths[] = $parentDir . "/resources/views/" . $normalizedTemplate;
+        $searchPaths[] = $parentDir . "/" . $normalizedTemplate;
     }
-    
+
     // Try WordPress's locate_template as fallback
     $wpTemplate = locate_template($normalizedTemplate);
     if ($wpTemplate) {
         $searchPaths[] = $wpTemplate;
     }
-    
+
     // Return first existing template
     foreach ($searchPaths as $path) {
         if (file_exists($path)) {
             return $path;
         }
     }
-    
+
     return null;
 }
 
@@ -845,31 +859,34 @@ function wproutes_find_view_template($template) {
  * @param array $data Data to pass to the template
  * @return string Rendered template content
  */
-function view($template, $data = []) {
+function view($template, $data = [])
+{
     // Extract variables to make them available in the template
     extract($data);
-    
+
     // Start output buffering
     ob_start();
-    
+
     // Include WordPress header
     get_header();
-    
+
     // Find the template using the same logic as routes
     $template_path = wproutes_find_view_template($template);
-    
+
     if ($template_path && file_exists($template_path)) {
         include $template_path;
     } else {
-        echo '<div class="error">Template not found: ' . esc_html($template) . '</div>';
+        echo '<div class="error">Template not found: ' .
+            esc_html($template) .
+            "</div>";
     }
-    
+
     // Include WordPress footer
     get_footer();
-    
+
     // Get the buffered content and clean the buffer
     $content = ob_get_clean();
-    
+
     // Return the content
     return $content;
 }
@@ -881,7 +898,8 @@ function view($template, $data = []) {
  * @param array $data Data to pass to the template
  * @return string Rendered template content
  */
-function wproutes_view($template, $data = []) {
+function wproutes_view($template, $data = [])
+{
     return view($template, $data);
 }
 
@@ -898,10 +916,10 @@ function wproutes_api_url($endpoint, $namespace = null)
     if ($namespace === null) {
         $namespace = \WordPressRoutes\Routing\RouteManager::getNamespace();
     }
-    
+
     // Build the full path
-    $path = trim($namespace, '/') . '/' . ltrim($endpoint, '/');
-    
+    $path = trim($namespace, "/") . "/" . ltrim($endpoint, "/");
+
     // Use rest_url which respects the rest_url_prefix filter
     return rest_url($path);
 }
