@@ -552,7 +552,7 @@ class RouteRequest
      */
     public function validate(array $rules, array $messages = [], array $attributes = [])
     {
-        $validator = new \WordPressRoutes\Validation\Validator(
+        $validator = new \WordPressRoutes\Routing\Validation\Validator(
             $this->all(),
             $rules,
             $messages,
@@ -568,11 +568,11 @@ class RouteRequest
      * @param array $rules Validation rules
      * @param array $messages Custom error messages
      * @param array $attributes Custom attribute names
-     * @return \WordPressRoutes\Validation\Validator
+     * @return \WordPressRoutes\Routing\Validation\Validator
      */
     public function validator(array $rules, array $messages = [], array $attributes = [])
     {
-        return new \WordPressRoutes\Validation\Validator(
+        return new \WordPressRoutes\Routing\Validation\Validator(
             $this->all(),
             $rules,
             $messages,

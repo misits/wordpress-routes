@@ -191,7 +191,7 @@ abstract class FormRequest
     /**
      * Configure the validator instance.
      *
-     * @param  \WordPressRoutes\Validation\Validator  $validator
+     * @param  \WordPressRoutes\Routing\Validation\Validator  $validator
      * @return void
      */
     public function withValidator(Validator $validator)
