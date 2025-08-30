@@ -281,7 +281,7 @@ class RouteManager
 
         // Apply prefix
         if (!empty($groupAttributes['prefix'])) {
-            $endpoint = trim($groupAttributes['prefix'], '/') . '/' . ltrim($endpoint, '/');
+            $endpoint = trim($groupAttributes['prefix'], '/') . '/' . ltrim($endpoint ?: '', '/');
         }
 
         // Create route instance (default to API type for RouteManager routes)
@@ -405,7 +405,7 @@ class RouteManager
                 // Replace parameters in endpoint
                 foreach ($params as $key => $value) {
                     $endpoint = str_replace('{' . $key . '}', $value, $endpoint);
-                    $endpoint = preg_replace('/\(\?\P<' . $key . '>[^)]+\)/', $value, $endpoint);
+                    $endpoint = preg_replace('/\(\?P<' . $key . '>[^)]+\)/', $value, $endpoint);
                 }
                 
                 // Generate appropriate URL based on route type
@@ -413,7 +413,7 @@ class RouteManager
                     case 'web':
                     case 'admin':
                         // Web routes use home_url() for regular WordPress URLs
-                        return home_url('/' . ltrim($endpoint, '/'));
+                        return home_url('/' . ltrim($endpoint ?: '', '/'));
                         
                     case 'ajax':
                         // AJAX routes use admin_url() with admin-ajax.php
@@ -423,7 +423,7 @@ class RouteManager
                     case 'webhook':
                     default:
                         // API routes use rest_url() for REST API endpoints
-                        return rest_url($route->getNamespace() . '/' . $endpoint);
+                        return rest_url($route->getNamespace() . '/' . ($endpoint ?: ''));
                 }
             }
         }
